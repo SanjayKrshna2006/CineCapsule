@@ -1,22 +1,13 @@
 {
-  "name": "cinecapsule-stream",
-  "private": true,
+  "name": "cinecapsule-monorepo",
   "version": "1.0.0",
-  "type": "module",
+  "description": "CineCapsule - Movies, TV Series & Anime Streaming Platform",
+  "private": true,
   "scripts": {
-    "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
-  },
-  "dependencies": {
-    "@ghostery/adblocker": "^2.18.2",
-    "hls.js": "^1.7.3",
-    "lucide-react": "^1.16.0",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1"
-  },
-  "devDependencies": {
-    "@vitejs/plugin-react": "^4.3.4",
-    "vite": "^5.4.14"
+    "dev:frontend": "npm --prefix frontend run dev",
+    "dev:backend": "node backend/server.js",
+    "build:frontend": "npm --prefix frontend run build",
+    "build": "npm --prefix frontend run build",
+    "start": "node backend/server.js"
   }
 }
