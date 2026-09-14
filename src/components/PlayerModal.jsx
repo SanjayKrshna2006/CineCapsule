@@ -29,7 +29,7 @@ export default function PlayerModal({
   const title = media?.title || media?.name || 'Now Playing';
 
   // For Anime: Anime Server default + Server 2 & 3 fallbacks. For others: Server 1, 2, 3.
-  const availableServers = isAnime ? [ANIME_SERVER, ...STREAM_SERVERS.slice(1)] : STREAM_SERVERS;
+  const availableServers = isAnime ? [ANIME_SERVER] : STREAM_SERVERS;
 
   const [selectedServer, setSelectedServer] = useState(() => {
     if (isAnime) return ANIME_SERVER.id;
