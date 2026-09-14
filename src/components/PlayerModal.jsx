@@ -44,10 +44,12 @@ export default function PlayerModal({
   const [showServerMenu, setShowServerMenu] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isHoveringHeader, setIsHoveringHeader] = useState(false);
 
   const containerRef = useRef(null);
   const serverMenuRef = useRef(null);
   const hideTimerRef = useRef(null);
+  const isHoveringRef = useRef(false);
 
   // Auto-hide player header and title when watching
   const resetHideTimer = useCallback(() => {
@@ -55,11 +57,30 @@ export default function PlayerModal({
     if (hideTimerRef.current) {
       clearTimeout(hideTimerRef.current);
     }
-    // Only auto-hide if server dropdown is closed
-    hideTimerRef.current = setTimeout(() => {
-      setShowControls(false);
-    }, 2800);
+    // Never auto-hide if user is hovering header or menus are open
+    if (!isHoveringRef.current && !showServerMenu && !showDrawer) {
+      hideTimerRef.current = setTimeout(() => {
+        if (!isHoveringRef.current && !showServerMenu && !showDrawer) {
+          setShowControls(false);
+        }
+      }, 3500);
+    }
+  }, [showServerMenu, showDrawer]);
+
+  const handleHeaderMouseEnter = useCallback(() => {
+    isHoveringRef.current = true;
+    setIsHoveringHeader(true);
+    setShowControls(true);
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current);
+    }
   }, []);
+
+  const handleHeaderMouseLeave = useCallback(() => {
+    isHoveringRef.current = false;
+    setIsHoveringHeader(false);
+    resetHideTimer();
+  }, [resetHideTimer]);
 
   useEffect(() => {
     resetHideTimer();
@@ -258,7 +279,7 @@ export default function PlayerModal({
     }
   };
 
-  const isHeaderActive = showControls || showServerMenu;
+  const isHeaderActive = showControls || showServerMenu || showDrawer || isHoveringHeader;
 
   return (
     <div
@@ -268,13 +289,35 @@ export default function PlayerModal({
       onTouchStart={resetHideTimer}
       onClick={resetHideTimer}
     >
-      {/* Top Hover Zone to reveal header on mouse reach */}
-      <div className="player-top-hover-trigger" onMouseEnter={resetHideTimer} />
+      {/* Top Hover Zone to smoothly reveal header when mouse moves near top */}
+      <div
+        className="player-top-hover-trigger"
+        onMouseEnter={handleHeaderMouseEnter}
+        onMouseMove={resetHideTimer}
+      />
+
+      {/* Subtle Floating Tab when header is hidden to easily bring it back */}
+      {!isHeaderActive && (
+        <button
+          className="player-reveal-tab"
+          onClick={() => {
+            setShowControls(true);
+            resetHideTimer();
+          }}
+          onMouseEnter={handleHeaderMouseEnter}
+          title="Show Controls & Info"
+          aria-label="Show Controls"
+        >
+          <ChevronDown size={18} />
+          <span>Controls</span>
+        </button>
+      )}
 
       {/* Auto-Hiding Glass Header Bar with Title and Controls */}
       <header
         className={`player-header ${!isHeaderActive ? 'hidden' : ''}`}
-        onMouseEnter={() => setShowControls(true)}
+        onMouseEnter={handleHeaderMouseEnter}
+        onMouseLeave={handleHeaderMouseLeave}
       >
         <div className="player-title-info">
           <button

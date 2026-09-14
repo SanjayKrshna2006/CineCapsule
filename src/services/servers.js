@@ -61,8 +61,14 @@ export function cleanAnimeSlug(title = '') {
 export const ANIME_SERVER = {
   id: 'animesalt',
   name: 'Anime Server',
-  getMovieUrl: (tmdbId, title = '') => `https://embedmaster.link/movie/${tmdbId}?multiLang=true&audio=all`,
-  getTvUrl: (tmdbId, season = 1, episode = 1, title = '') => `https://embedmaster.link/tv/${tmdbId}/${season || 1}/${episode || 1}?multiLang=true&audio=all`
+  getMovieUrl: (tmdbId, title = '') => {
+    const slug = cleanAnimeSlug(title);
+    return `/api/animesalt-stream?id=${tmdbId || ''}&slug=${encodeURIComponent(slug)}&title=${encodeURIComponent(title || '')}&movie=true`;
+  },
+  getTvUrl: (tmdbId, season = 1, episode = 1, title = '') => {
+    const slug = cleanAnimeSlug(title);
+    return `/api/animesalt-stream?id=${tmdbId || ''}&slug=${encodeURIComponent(slug)}&title=${encodeURIComponent(title || '')}&s=${season || 1}&e=${episode || 1}`;
+  }
 };
 
 export const STREAM_SERVERS = [
