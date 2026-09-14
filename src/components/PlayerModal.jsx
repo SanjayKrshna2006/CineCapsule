@@ -9,7 +9,8 @@ import {
   Film,
   ListVideo,
   Radio,
-  Check
+  Check,
+  Loader2
 } from 'lucide-react';
 import { STREAM_SERVERS, ANIME_SERVER, getStreamUrl } from '../services/servers';
 import { tmdb, getImageUrl } from '../services/tmdb';
@@ -27,7 +28,8 @@ export default function PlayerModal({
   const tmdbId = media?.id;
   const title = media?.title || media?.name || 'Now Playing';
 
-  const availableServers = isAnime ? [ANIME_SERVER] : STREAM_SERVERS;
+  // For Anime: Anime Server default + Server 2 & 3 fallbacks. For others: Server 1, 2, 3.
+  const availableServers = isAnime ? [ANIME_SERVER, ...STREAM_SERVERS.slice(1)] : STREAM_SERVERS;
 
   const [selectedServer, setSelectedServer] = useState(() => {
     if (isAnime) return ANIME_SERVER.id;
@@ -43,6 +45,7 @@ export default function PlayerModal({
   const [iframeKey, setIframeKey] = useState(0);
   const [showServerMenu, setShowServerMenu] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isIframeLoading, setIsIframeLoading] = useState(true);
 
   const containerRef = useRef(null);
   const serverMenuRef = useRef(null);
@@ -147,11 +150,13 @@ export default function PlayerModal({
     setCurrentSeason(seasonNum);
     setCurrentEpisode(1);
     fetchEpisodesForSeason(seasonNum);
+    setIsIframeLoading(true);
     setIframeKey(k => k + 1);
   };
 
   const handleEpisodeSelect = (epNum) => {
     setCurrentEpisode(epNum);
+    setIsIframeLoading(true);
     setIframeKey(k => k + 1);
     setShowDrawer(false);
   };
@@ -223,6 +228,7 @@ export default function PlayerModal({
     const newServer = e.target.value;
     setSelectedServer(newServer);
     storage.savePreferences({ server: newServer });
+    setIsIframeLoading(true);
     setIframeKey(k => k + 1);
   };
 
@@ -230,6 +236,7 @@ export default function PlayerModal({
     const currentIndex = episodes.findIndex(e => e.episode_number === currentEpisode);
     if (currentIndex >= 0 && currentIndex < episodes.length - 1) {
       setCurrentEpisode(episodes[currentIndex + 1].episode_number);
+      setIsIframeLoading(true);
       setIframeKey(k => k + 1);
     } else {
       const currentSeasonIndex = seasons.findIndex(s => s.season_number === currentSeason);
@@ -237,6 +244,7 @@ export default function PlayerModal({
         const nextSeason = seasons[currentSeasonIndex + 1].season_number;
         setCurrentSeason(nextSeason);
         setCurrentEpisode(1);
+        setIsIframeLoading(true);
         setIframeKey(k => k + 1);
       }
     }
@@ -246,6 +254,7 @@ export default function PlayerModal({
     const currentIndex = episodes.findIndex(e => e.episode_number === currentEpisode);
     if (currentIndex > 0) {
       setCurrentEpisode(episodes[currentIndex - 1].episode_number);
+      setIsIframeLoading(true);
       setIframeKey(k => k + 1);
     }
   };
@@ -363,14 +372,24 @@ export default function PlayerModal({
       {/* Main Video Stage */}
       <div className="player-content-area">
         <div className="player-iframe-container">
+          {/* Fast Stream Loading Spinner */}
+          {isIframeLoading && (
+            <div className="player-loader-overlay">
+              <div className="loader-box">
+                <Loader2 className="spinner-rotate" size={36} color="var(--primary)" />
+                <span>Loading stream...</span>
+              </div>
+            </div>
+          )}
+
           <iframe
             key={`${currentStreamUrl}-${iframeKey}`}
             src={currentStreamUrl}
             title={`${title} - Player`}
             className="player-iframe"
             allowFullScreen
-            allow="autoplay; fullscreen; encrypted-media; picture-in-picture; cross-origin-isolated"
-            sandbox="allow-forms allow-modals allow-orientation-lock allow-pointer-lock allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts"
+            allow="autoplay; fullscreen; encrypted-media; picture-in-picture; cross-origin-isolated; clipboard-write; web-share"
+            onLoad={() => setIsIframeLoading(false)}
           />
         </div>
 
