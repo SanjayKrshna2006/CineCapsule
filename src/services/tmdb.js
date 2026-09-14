@@ -36,7 +36,7 @@ export const TMDB_GENRES = {
     { id: 10765, name: 'Sci-Fi & Fantasy' },
     { id: 10768, name: 'War & Politics' }
   ],
-    anime: [
+  anime: [
     { id: 'trending', name: '🔥 Trending Anime' },
     { id: 'action', name: '⚔️ Shonen & Action', genreId: 10759 },
     { id: 'fantasy', name: '✨ Fantasy & Isekai', genreId: 10765 },
@@ -76,7 +76,6 @@ export const tmdb = {
   async getHeroFeatured() {
     try {
       const data = await fetchFromTmdb('/trending/all/day');
-      // Pick high rating items with good backdrops
       const candidates = (data.results || []).filter(item => item.backdrop_path && item.vote_average >= 7);
       return candidates.slice(0, 8);
     } catch (err) {
@@ -98,7 +97,7 @@ export const tmdb = {
         }),
         fetchFromTmdb('/movie/top_rated'),
         fetchFromTmdb('/discover/tv', {
-          with_networks: '213', // Netflix
+          with_networks: '213',
           sort_by: 'popularity.desc'
         }),
         fetchFromTmdb('/discover/movie', {
@@ -207,8 +206,29 @@ export const tmdb = {
     }
   },
 
+  async getTvDetails(id) {
+    return this.getDetails(id, 'tv');
+  },
+
+  async getMovieDetails(id) {
+    return this.getDetails(id, 'movie');
+  },
+
   // TV Season Episodes
-  async getSeasonDetails(tvId, seasonNumber) {
+  async getTvSeason(tvId, seasonNumber = 1) {
+    try {
+      const data = await fetchFromTmdb(`/tv/${tvId}/season/${seasonNumber}`);
+      return {
+        ...data,
+        episodes: data.episodes || []
+      };
+    } catch (err) {
+      console.error('getTvSeason error', err);
+      return { episodes: [] };
+    }
+  },
+
+  async getSeasonDetails(tvId, seasonNumber = 1) {
     try {
       const data = await fetchFromTmdb(`/tv/${tvId}/season/${seasonNumber}`);
       return data.episodes || [];
@@ -222,16 +242,8 @@ export const tmdb = {
   async searchMulti(query) {
     if (!query || !query.trim()) return [];
     try {
-      const data = await fetchFromTmdb('/search/multi', { query: query.trim() });
-      return (data.results || []).filter(
-        item => (item.media_type === 'movie' || item.media_type === 'tv') && (item.poster_path || item.backdrop_path)
-      ).map(item => {
-        const isAnime = item.original_language === 'ja' && (item.genre_ids?.includes(16) || false);
-        return {
-          ...item,
-          isAnime
-        };
-      });
+      const data = await fetchFromTmdb('/search/multi', { query });
+      return (data.results || []).filter(item => item.media_type === 'movie' || item.media_type === 'tv');
     } catch (err) {
       console.error('searchMulti error', err);
       return [];
