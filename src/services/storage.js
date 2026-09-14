@@ -16,25 +16,37 @@ export const storage = {
   },
 
   isInWatchlist(id) {
-    const list = this.getWatchlist();
-    return list.some(item => String(item.id) === String(id));
+    try {
+      const list = this.getWatchlist();
+      return list.some(item => String(item.id) === String(id));
+    } catch {
+      return false;
+    }
   },
 
   addToWatchlist(item) {
-    const list = this.getWatchlist();
-    if (!list.some(i => String(i.id) === String(item.id))) {
-      const updated = [item, ...list];
-      localStorage.setItem(WATCHLIST_KEY, JSON.stringify(updated));
-      return updated;
+    try {
+      const list = this.getWatchlist();
+      if (!list.some(i => String(i.id) === String(item.id))) {
+        const updated = [item, ...list];
+        localStorage.setItem(WATCHLIST_KEY, JSON.stringify(updated));
+        return updated;
+      }
+      return list;
+    } catch {
+      return [];
     }
-    return list;
   },
 
   removeFromWatchlist(id) {
-    const list = this.getWatchlist();
-    const updated = list.filter(item => String(item.id) !== String(id));
-    localStorage.setItem(WATCHLIST_KEY, JSON.stringify(updated));
-    return updated;
+    try {
+      const list = this.getWatchlist();
+      const updated = list.filter(item => String(item.id) !== String(id));
+      localStorage.setItem(WATCHLIST_KEY, JSON.stringify(updated));
+      return updated;
+    } catch {
+      return [];
+    }
   },
 
   // Continue Watching History
@@ -48,41 +60,57 @@ export const storage = {
   },
 
   saveHistory(item) {
-    const history = this.getHistory();
-    const filtered = history.filter(h => String(h.id) !== String(item.id));
-    const updated = [
-      {
-        ...item,
-        lastWatched: Date.now()
-      },
-      ...filtered
-    ].slice(0, 20); // keep last 20
+    try {
+      const history = this.getHistory();
+      const filtered = history.filter(h => String(h.id) !== String(item?.id));
+      const updated = [
+        {
+          ...item,
+          lastWatched: Date.now()
+        },
+        ...filtered
+      ].slice(0, 30);
 
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
-    return updated;
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
+      return updated;
+    } catch {
+      return [];
+    }
+  },
+
+  addHistory(item) {
+    return this.saveHistory(item);
   },
 
   removeFromHistory(id) {
-    const history = this.getHistory();
-    const updated = history.filter(h => String(h.id) !== String(id));
-    localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
-    return updated;
+    try {
+      const history = this.getHistory();
+      const updated = history.filter(h => String(h.id) !== String(id));
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(updated));
+      return updated;
+    } catch {
+      return [];
+    }
   },
 
   // Preferences
   getPreferences() {
     try {
       const data = localStorage.getItem(PREFS_KEY);
-      return data ? JSON.parse(data) : { server: 'vidlink', adShield: true };
+      return data ? JSON.parse(data) : { server: 'netmirror', adShield: true };
     } catch {
-      return { server: 'vidlink', adShield: true };
+      return { server: 'netmirror', adShield: true };
     }
   },
 
   savePreferences(prefs) {
-    const current = this.getPreferences();
-    const updated = { ...current, ...prefs };
-    localStorage.setItem(PREFS_KEY, JSON.stringify(updated));
-    return updated;
+    try {
+      const current = this.getPreferences();
+      const updated = { ...current, ...prefs };
+      localStorage.setItem(PREFS_KEY, JSON.stringify(updated));
+      return updated;
+    } catch {
+      return {};
+    }
   }
 };
