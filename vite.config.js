@@ -96,6 +96,115 @@ export default defineConfig({
         // Universal AnimeSalt Stream Resolver with Auto-Search & Direct Player Engine
         const animeCache = new Map();
 
+        
+        // AnimeSalt Episodes List API Endpoint
+        const epCache = new Map();
+        server.middlewares.use('/api/animesalt-episodes', async (req, res) => {
+          try {
+            const reqUrl = new URL(req.url, 'http://localhost:3000');
+            const slug = reqUrl.searchParams.get('slug') || '';
+            const title = reqUrl.searchParams.get('title') || slug;
+
+            if (!slug && !title) {
+              res.writeHead(400, { 'Content-Type': 'application/json' });
+              return res.end(JSON.stringify({ error: 'Missing slug or title' }));
+            }
+
+            const cacheKey = slug || title;
+            if (epCache.has(cacheKey)) {
+              res.writeHead(200, {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
+              });
+              return res.end(JSON.stringify(epCache.get(cacheKey)));
+            }
+
+            const candidates = [
+              slug,
+              (title || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
+            ].filter(Boolean);
+
+            let html = '';
+            for (const cand of candidates) {
+              for (const prefix of ['anime', 'series']) {
+                const targetUrl = `https://animesalt.cx/${prefix}/${cand}/`;
+                try {
+                  const pageRes = await fetch(targetUrl, {
+                    headers: { 'User-Agent': 'Mozilla/5.0' }
+                  });
+                  if (pageRes.status === 200) {
+                    html = await pageRes.text();
+                    break;
+                  }
+                } catch (e) {}
+              }
+              if (html) break;
+            }
+
+            if (!html) {
+              try {
+                const searchRes = await fetch(`https://animesalt.cx/?s=${encodeURIComponent(title || slug)}`, {
+                  headers: { 'User-Agent': 'Mozilla/5.0' }
+                });
+                if (searchRes.status === 200) {
+                  const sHtml = await searchRes.text();
+                  const match = sHtml.match(/href="(https:\/\/animesalt\.cx\/(?:series|anime)\/([^"/]+)\/?)"/i);
+                  if (match) {
+                    const pageRes = await fetch(match[1], { headers: { 'User-Agent': 'Mozilla/5.0' } });
+                    if (pageRes.status === 200) {
+                      html = await pageRes.text();
+                    }
+                  }
+                }
+              } catch (e) {}
+            }
+
+            const episodes = [];
+            if (html) {
+              const epMatches = [...html.matchAll(/href="(https:\/\/animesalt\.cx\/episode\/([^"]+)\/)"[^>]*>([\s\S]*?)<\/a>/gi)];
+              const seen = new Set();
+              for (const m of epMatches) {
+                const epUrl = m[1];
+                const epSlug = m[2];
+                if (seen.has(epSlug)) continue;
+                seen.add(epSlug);
+
+                const seMatch = epSlug.match(/(\d+)x(\d+)/i);
+                let season = 1;
+                let episode = 1;
+                if (seMatch) {
+                  season = parseInt(seMatch[1], 10);
+                  episode = parseInt(seMatch[2], 10);
+                } else {
+                  const singleNum = epSlug.match(/-(\d+)$/);
+                  if (singleNum) episode = parseInt(singleNum[1], 10);
+                }
+
+                episodes.push({
+                  id: epSlug,
+                  episode_number: episode,
+                  season_number: season,
+                  name: `Episode ${episode}`,
+                  url: epUrl,
+                  slug: epSlug
+                });
+              }
+              episodes.sort((a, b) => (a.season_number - b.season_number) || (a.episode_number - b.episode_number));
+            }
+
+            epCache.set(cacheKey, episodes);
+            res.writeHead(200, {
+              'Content-Type': 'application/json',
+              'Access-Control-Allow-Origin': '*'
+            });
+            res.end(JSON.stringify(episodes));
+          } catch (err) {
+            console.error('[AnimeSalt Episodes API Error]:', err.message);
+            res.writeHead(500, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: err.message, episodes: [] }));
+          }
+        });
+
         server.middlewares.use('/api/animesalt-stream', async (req, res) => {
           try {
             const reqUrl = new URL(req.url, 'http://localhost:3000');

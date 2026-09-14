@@ -107,35 +107,128 @@ export default function PlayerModal({
     }
   }, []);
 
-  // Fetch TV / Anime Seasons & Episodes
+    // Fetch TV / Anime Seasons & Episodes (with AnimeSalt Native Integration)
   useEffect(() => {
-    if (!isTv || !tmdbId) return;
+    if (!isTv) return;
 
     let isMounted = true;
-    const fetchSeasons = async () => {
+    const fetchEpisodes = async () => {
+      setLoadingEpisodes(true);
       try {
-        const details = await tmdb.getTvDetails(tmdbId);
-        if (!isMounted) return;
+        if (isAnime) {
+          // Fetch exact episodes from AnimeSalt
+          const saltRes = await fetch(`/api/animesalt-episodes?title=${encodeURIComponent(title)}`);
+          const saltEps = saltRes.ok ? await saltRes.json() : [];
 
-        const validSeasons = (details.seasons || []).filter(s => s.season_number > 0);
-        setSeasons(validSeasons);
+          // Also attempt TMDB season details for rich metadata
+          let tmdbDetails = null;
+          if (tmdbId) {
+            try { tmdbDetails = await tmdb.getTvDetails(tmdbId); } catch (e) {}
+          }
 
-        const currentSeasonObj = validSeasons.find(s => s.season_number === currentSeason) || validSeasons[0];
-        if (currentSeasonObj) {
-          fetchEpisodesForSeason(currentSeasonObj.season_number);
+          if (!isMounted) return;
+
+          if (saltEps && saltEps.length > 0) {
+            // Group AnimeSalt episodes by season
+            const seasonsMap = new Map();
+            saltEps.forEach(ep => {
+              const sNum = ep.season_number || 1;
+              if (!seasonsMap.has(sNum)) {
+                seasonsMap.set(sNum, []);
+              }
+              seasonsMap.get(sNum).push(ep);
+            });
+
+            const seasonsArr = Array.from(seasonsMap.keys()).sort((a, b) => a - b).map(sNum => ({
+              id: sNum,
+              season_number: sNum,
+              name: `Season ${sNum}`
+            }));
+
+            setSeasons(seasonsArr.length > 0 ? seasonsArr : [{ id: 1, season_number: 1, name: 'Season 1' }]);
+
+            // Current season episodes
+            const activeSeasonEps = seasonsMap.get(currentSeason) || saltEps;
+            
+            // If TMDB metadata exists for this season, merge it
+            let mergedEps = activeSeasonEps;
+            if (tmdbId) {
+              try {
+                const tmdbSeasonData = await tmdb.getTvSeason(tmdbId, currentSeason);
+                if (tmdbSeasonData?.episodes?.length) {
+                  mergedEps = activeSeasonEps.map(ep => {
+                    const tmdbEp = tmdbSeasonData.episodes.find(t => t.episode_number === ep.episode_number);
+                    return {
+                      ...ep,
+                      name: tmdbEp?.name || ep.name || `Episode ${ep.episode_number}`,
+                      overview: tmdbEp?.overview || '',
+                      still_path: tmdbEp?.still_path || null
+                    };
+                  });
+                }
+              } catch (e) {}
+            }
+
+            if (isMounted) setEpisodes(mergedEps);
+            return;
+          }
+        }
+
+        // Standard TMDB Series Fetch for non-anime or fallback
+        if (tmdbId) {
+          const details = await tmdb.getTvDetails(tmdbId);
+          if (!isMounted) return;
+
+          const validSeasons = (details.seasons || []).filter(s => s.season_number > 0);
+          setSeasons(validSeasons);
+
+          const currentSeasonObj = validSeasons.find(s => s.season_number === currentSeason) || validSeasons[0];
+          if (currentSeasonObj) {
+            fetchEpisodesForSeason(currentSeasonObj.season_number);
+          }
         }
       } catch (err) {
-        console.error('Failed to fetch seasons:', err);
+        console.error('Failed to fetch anime/TV episodes:', err);
+      } finally {
+        if (isMounted) setLoadingEpisodes(false);
       }
     };
 
-    fetchSeasons();
+    fetchEpisodes();
     return () => { isMounted = false; };
-  }, [isTv, tmdbId]);
+  }, [isTv, tmdbId, isAnime, title]);
 
   const fetchEpisodesForSeason = async (seasonNum) => {
     setLoadingEpisodes(true);
     try {
+      if (isAnime) {
+        const saltRes = await fetch(`/api/animesalt-episodes?title=${encodeURIComponent(title)}`);
+        const saltEps = saltRes.ok ? await saltRes.json() : [];
+        const seasonEps = saltEps.filter(e => (e.season_number || 1) === seasonNum);
+        if (seasonEps.length > 0) {
+          if (tmdbId) {
+            try {
+              const tmdbSeasonData = await tmdb.getTvSeason(tmdbId, seasonNum);
+              if (tmdbSeasonData?.episodes?.length) {
+                const merged = seasonEps.map(ep => {
+                  const tmdbEp = tmdbSeasonData.episodes.find(t => t.episode_number === ep.episode_number);
+                  return {
+                    ...ep,
+                    name: tmdbEp?.name || ep.name || `Episode ${ep.episode_number}`,
+                    overview: tmdbEp?.overview || '',
+                    still_path: tmdbEp?.still_path || null
+                  };
+                });
+                setEpisodes(merged);
+                return;
+              }
+            } catch (e) {}
+          }
+          setEpisodes(seasonEps);
+          return;
+        }
+      }
+
       const data = await tmdb.getTvSeason(tmdbId, seasonNum);
       setEpisodes(data.episodes || []);
     } catch (err) {
