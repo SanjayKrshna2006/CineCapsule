@@ -10,7 +10,8 @@ import {
   ListVideo,
   Radio,
   Check,
-  Loader2
+  Loader2,
+  Play
 } from 'lucide-react';
 import { STREAM_SERVERS, ANIME_SERVER, getStreamUrl } from '../services/servers';
 import { tmdb, getImageUrl } from '../services/tmdb';
@@ -28,7 +29,6 @@ export default function PlayerModal({
   const tmdbId = media?.id;
   const title = media?.title || media?.name || 'Now Playing';
 
-  // For Anime: Anime Server default + Server 2 & 3 fallbacks. For others: Server 1, 2, 3.
   const availableServers = isAnime ? [ANIME_SERVER] : STREAM_SERVERS;
 
   const [selectedServer, setSelectedServer] = useState(() => {
@@ -107,128 +107,35 @@ export default function PlayerModal({
     }
   }, []);
 
-    // Fetch TV / Anime Seasons & Episodes (with AnimeSalt Native Integration)
+  // Fetch TMDB Seasons & Episodes
   useEffect(() => {
-    if (!isTv) return;
+    if (!isTv || !tmdbId) return;
 
     let isMounted = true;
-    const fetchEpisodes = async () => {
-      setLoadingEpisodes(true);
+    const fetchSeasons = async () => {
       try {
-        if (isAnime) {
-          // Fetch exact episodes from AnimeSalt
-          const saltRes = await fetch(`/api/animesalt-episodes?title=${encodeURIComponent(title)}`);
-          const saltEps = saltRes.ok ? await saltRes.json() : [];
+        const details = await tmdb.getTvDetails(tmdbId);
+        if (!isMounted) return;
 
-          // Also attempt TMDB season details for rich metadata
-          let tmdbDetails = null;
-          if (tmdbId) {
-            try { tmdbDetails = await tmdb.getTvDetails(tmdbId); } catch (e) {}
-          }
+        const validSeasons = (details.seasons || []).filter(s => s.season_number > 0);
+        setSeasons(validSeasons);
 
-          if (!isMounted) return;
-
-          if (saltEps && saltEps.length > 0) {
-            // Group AnimeSalt episodes by season
-            const seasonsMap = new Map();
-            saltEps.forEach(ep => {
-              const sNum = ep.season_number || 1;
-              if (!seasonsMap.has(sNum)) {
-                seasonsMap.set(sNum, []);
-              }
-              seasonsMap.get(sNum).push(ep);
-            });
-
-            const seasonsArr = Array.from(seasonsMap.keys()).sort((a, b) => a - b).map(sNum => ({
-              id: sNum,
-              season_number: sNum,
-              name: `Season ${sNum}`
-            }));
-
-            setSeasons(seasonsArr.length > 0 ? seasonsArr : [{ id: 1, season_number: 1, name: 'Season 1' }]);
-
-            // Current season episodes
-            const activeSeasonEps = seasonsMap.get(currentSeason) || saltEps;
-            
-            // If TMDB metadata exists for this season, merge it
-            let mergedEps = activeSeasonEps;
-            if (tmdbId) {
-              try {
-                const tmdbSeasonData = await tmdb.getTvSeason(tmdbId, currentSeason);
-                if (tmdbSeasonData?.episodes?.length) {
-                  mergedEps = activeSeasonEps.map(ep => {
-                    const tmdbEp = tmdbSeasonData.episodes.find(t => t.episode_number === ep.episode_number);
-                    return {
-                      ...ep,
-                      name: tmdbEp?.name || ep.name || `Episode ${ep.episode_number}`,
-                      overview: tmdbEp?.overview || '',
-                      still_path: tmdbEp?.still_path || null
-                    };
-                  });
-                }
-              } catch (e) {}
-            }
-
-            if (isMounted) setEpisodes(mergedEps);
-            return;
-          }
-        }
-
-        // Standard TMDB Series Fetch for non-anime or fallback
-        if (tmdbId) {
-          const details = await tmdb.getTvDetails(tmdbId);
-          if (!isMounted) return;
-
-          const validSeasons = (details.seasons || []).filter(s => s.season_number > 0);
-          setSeasons(validSeasons);
-
-          const currentSeasonObj = validSeasons.find(s => s.season_number === currentSeason) || validSeasons[0];
-          if (currentSeasonObj) {
-            fetchEpisodesForSeason(currentSeasonObj.season_number);
-          }
+        const currentSeasonObj = validSeasons.find(s => s.season_number === currentSeason) || validSeasons[0];
+        if (currentSeasonObj) {
+          fetchEpisodesForSeason(currentSeasonObj.season_number);
         }
       } catch (err) {
-        console.error('Failed to fetch anime/TV episodes:', err);
-      } finally {
-        if (isMounted) setLoadingEpisodes(false);
+        console.error('Failed to fetch seasons:', err);
       }
     };
 
-    fetchEpisodes();
+    fetchSeasons();
     return () => { isMounted = false; };
-  }, [isTv, tmdbId, isAnime, title]);
+  }, [isTv, tmdbId]);
 
   const fetchEpisodesForSeason = async (seasonNum) => {
     setLoadingEpisodes(true);
     try {
-      if (isAnime) {
-        const saltRes = await fetch(`/api/animesalt-episodes?title=${encodeURIComponent(title)}`);
-        const saltEps = saltRes.ok ? await saltRes.json() : [];
-        const seasonEps = saltEps.filter(e => (e.season_number || 1) === seasonNum);
-        if (seasonEps.length > 0) {
-          if (tmdbId) {
-            try {
-              const tmdbSeasonData = await tmdb.getTvSeason(tmdbId, seasonNum);
-              if (tmdbSeasonData?.episodes?.length) {
-                const merged = seasonEps.map(ep => {
-                  const tmdbEp = tmdbSeasonData.episodes.find(t => t.episode_number === ep.episode_number);
-                  return {
-                    ...ep,
-                    name: tmdbEp?.name || ep.name || `Episode ${ep.episode_number}`,
-                    overview: tmdbEp?.overview || '',
-                    still_path: tmdbEp?.still_path || null
-                  };
-                });
-                setEpisodes(merged);
-                return;
-              }
-            } catch (e) {}
-          }
-          setEpisodes(seasonEps);
-          return;
-        }
-      }
-
       const data = await tmdb.getTvSeason(tmdbId, seasonNum);
       setEpisodes(data.episodes || []);
     } catch (err) {
@@ -435,11 +342,11 @@ export default function PlayerModal({
           {/* Episode Drawer Toggle */}
           {isTv && (
             <button
-              className="btn-icon-round"
+              className={`btn-icon-round ${showDrawer ? 'active' : ''}`}
               style={{ width: '38px', height: '38px' }}
               onClick={() => setShowDrawer(!showDrawer)}
-              title="Toggle Episode Drawer"
-              aria-label="Toggle Episode Drawer"
+              title="Toggle Episode List"
+              aria-label="Toggle Episode List"
             >
               <ListVideo size={18} />
             </button>
@@ -486,17 +393,24 @@ export default function PlayerModal({
           />
         </div>
 
-        {/* TV Series / Anime Episode Drawer */}
+        {/* TV Series / Anime Modern Episode List Drawer */}
         {isTv && showDrawer && (
-          <aside className="episode-drawer">
-            <div className="episode-drawer-header">
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--text-main)' }}>
-                  Seasons & Episodes
-                </span>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                  {episodes.length} Episodes
-                </span>
+          <aside className="episode-drawer-panel">
+            <div className="episode-drawer-top">
+              <div className="drawer-title-row">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <ListVideo size={18} color="var(--primary)" />
+                  <span style={{ fontSize: '1rem', fontWeight: '700', color: 'var(--text-main)' }}>
+                    Episodes List
+                  </span>
+                </div>
+                <button
+                  className="drawer-close-btn"
+                  onClick={() => setShowDrawer(false)}
+                  title="Close List"
+                >
+                  <X size={16} />
+                </button>
               </div>
 
               {/* Season Selector Tabs */}
@@ -515,7 +429,7 @@ export default function PlayerModal({
               )}
             </div>
 
-            <div className="episode-list-container">
+            <div className="episode-list-items-wrap">
               {loadingEpisodes ? (
                 <div className="episode-loading">
                   <div className="spinner" />
@@ -527,21 +441,33 @@ export default function PlayerModal({
                   return (
                     <div
                       key={ep.id}
-                      className={`episode-card ${isCurrent ? 'active' : ''}`}
+                      className={`episode-list-item ${isCurrent ? 'active' : ''}`}
                       onClick={() => handleEpisodeSelect(ep.episode_number)}
                     >
-                      <div className="episode-card-thumb">
+                      <span className="ep-list-num">
+                        {String(ep.episode_number).padStart(2, '0')}
+                      </span>
+                      <div className="ep-list-thumb">
                         <img
                           src={getImageUrl(ep.still_path, 'w500') || getImageUrl(media.backdrop_path, 'w500')}
                           alt={ep.name}
                           loading="lazy"
                         />
-                        <span className="ep-num-badge">EP {ep.episode_number}</span>
+                        <div className="ep-list-play-overlay">
+                          <Play size={16} fill="#fff" />
+                        </div>
                       </div>
-                      <div className="episode-card-info">
-                        <div className="ep-title">{ep.name || `Episode ${ep.episode_number}`}</div>
-                        <p className="ep-overview">{ep.overview || 'No description available for this episode.'}</p>
+                      <div className="ep-list-info">
+                        <div className="ep-list-title-row">
+                          <span className="ep-list-name">{ep.name || `Episode ${ep.episode_number}`}</span>
+                        </div>
+                        <p className="ep-list-desc">
+                          {ep.overview || `Season ${currentSeason} Episode ${ep.episode_number}`}
+                        </p>
                       </div>
+                      {isCurrent && (
+                        <span className="now-playing-tag">PLAYING</span>
+                      )}
                     </div>
                   );
                 })
@@ -575,10 +501,10 @@ export default function PlayerModal({
           </div>
 
           <button
-            className="ep-nav-btn drawer-toggle-btn"
+            className={`ep-nav-btn drawer-toggle-btn ${showDrawer ? 'active' : ''}`}
             onClick={() => setShowDrawer(!showDrawer)}
           >
-            <ListVideo size={16} /> Episodes List
+            <ListVideo size={16} /> Episodes List ({episodes.length})
           </button>
         </div>
       )}

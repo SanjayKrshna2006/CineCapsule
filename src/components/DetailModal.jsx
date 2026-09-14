@@ -1,11 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { X, Play, Plus, Check, Star, Clock, Film, Tv } from 'lucide-react';
+import { X, Play, Plus, Check, Star, Clock, Film, Tv, ListVideo } from 'lucide-react';
 import { tmdb, getBackdropUrl, getImageUrl } from '../services/tmdb';
 
 export default function DetailModal({ item, onClose, onPlay, onToggleWatchlist, isInWatchlist }) {
   const [details, setDetails] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showTrailer, setShowTrailer] = useState(false);
+
+  // Episodes state for TV & Anime
+  const [seasons, setSeasons] = useState([]);
+  const [selectedSeason, setSelectedSeason] = useState(1);
+  const [episodes, setEpisodes] = useState([]);
+  const [loadingEpisodes, setLoadingEpisodes] = useState(false);
+
+  const isAnime = Boolean(item?.isAnime || (item?.original_language === 'ja' && (item?.genre_ids?.includes(16) || item?.genres?.some(g => g.id === 16))));
+  const isTv = item?.media_type === 'tv' || item?.first_air_date || (isAnime && item?.media_type !== 'movie');
 
   useEffect(() => {
     if (!item) return;
@@ -18,6 +27,14 @@ export default function DetailModal({ item, onClose, onPlay, onToggleWatchlist, 
       if (isMounted) {
         setDetails(data);
         setLoading(false);
+
+        if (isTv && data?.seasons) {
+          const validSeasons = data.seasons.filter(s => s.season_number > 0);
+          setSeasons(validSeasons);
+          const firstSeason = validSeasons[0]?.season_number || 1;
+          setSelectedSeason(firstSeason);
+          fetchSeasonEpisodes(item.id, firstSeason);
+        }
       }
     });
 
@@ -30,7 +47,25 @@ export default function DetailModal({ item, onClose, onPlay, onToggleWatchlist, 
       isMounted = false;
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [item, onClose]);
+  }, [item, isTv, onClose]);
+
+  const fetchSeasonEpisodes = async (tvId, seasonNum) => {
+    setLoadingEpisodes(true);
+    try {
+      const data = await tmdb.getTvSeason(tvId, seasonNum);
+      setEpisodes(data.episodes || []);
+    } catch (err) {
+      console.error('Failed to load season episodes:', err);
+      setEpisodes([]);
+    } finally {
+      setLoadingEpisodes(false);
+    }
+  };
+
+  const handleSeasonChange = (seasonNum) => {
+    setSelectedSeason(seasonNum);
+    fetchSeasonEpisodes(item.id, seasonNum);
+  };
 
   if (!item) return null;
 
@@ -107,9 +142,9 @@ export default function DetailModal({ item, onClose, onPlay, onToggleWatchlist, 
 
         <div className="detail-body">
           <div className="detail-actions">
-            <button className="btn-primary" onClick={() => { onPlay(current); onClose(); }}>
+            <button className="btn-primary" onClick={() => { onPlay(current, selectedSeason, 1); onClose(); }}>
               <Play size={18} fill="#fff" />
-              <span>Stream Now</span>
+              <span>{isTv ? `Play S${selectedSeason} E1` : 'Stream Now'}</span>
             </button>
 
             {trailer && !showTrailer && (
@@ -133,8 +168,71 @@ export default function DetailModal({ item, onClose, onPlay, onToggleWatchlist, 
             <p>{current.overview || 'No synopsis provided for this title.'}</p>
           </div>
 
+          {/* Dedicated Episodes List for TV Series & Anime */}
+          {isTv && (
+            <div className="detail-episodes-section">
+              <div className="detail-episodes-header">
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
+                  <ListVideo size={20} color="var(--primary)" />
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: '700' }}>Episodes List</h3>
+                </div>
+
+                {seasons.length > 1 && (
+                  <div className="season-pills-row">
+                    {seasons.map(s => (
+                      <button
+                        key={s.id}
+                        className={`season-pill-btn ${selectedSeason === s.season_number ? 'active' : ''}`}
+                        onClick={() => handleSeasonChange(s.season_number)}
+                      >
+                        Season {s.season_number}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {loadingEpisodes ? (
+                <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--text-muted)' }}>
+                  Loading episodes...
+                </div>
+              ) : (
+                <div className="episodes-detailed-list">
+                  {episodes.map(ep => (
+                    <div
+                      key={ep.id}
+                      className="episode-list-row"
+                      onClick={() => { onPlay(current, selectedSeason, ep.episode_number); onClose(); }}
+                    >
+                      <span className="episode-index-number">
+                        {String(ep.episode_number).padStart(2, '0')}
+                      </span>
+                      <div className="episode-row-thumb">
+                        <img
+                          src={getImageUrl(ep.still_path, 'w500') || getImageUrl(current.backdrop_path, 'w500')}
+                          alt={ep.name}
+                          loading="lazy"
+                        />
+                        <div className="episode-thumb-play-overlay">
+                          <Play size={20} fill="#fff" />
+                        </div>
+                      </div>
+                      <div className="episode-row-details">
+                        <div className="episode-row-title-bar">
+                          <h4 className="episode-row-name">{ep.name || `Episode ${ep.episode_number}`}</h4>
+                          {ep.runtime && <span className="episode-row-duration">{ep.runtime}m</span>}
+                        </div>
+                        <p className="episode-row-overview">{ep.overview || 'No description available for this episode.'}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {current.credits?.cast && current.credits.cast.length > 0 && (
-            <div>
+            <div style={{ marginTop: '1.5rem' }}>
               <h4 style={{ fontSize: '1.1rem', marginBottom: '0.8rem', color: 'var(--text-muted)' }}>Top Cast</h4>
               <div className="cast-row">
                 {current.credits.cast.slice(0, 10).map(actor => (
