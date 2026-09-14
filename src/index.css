@@ -1283,88 +1283,35 @@ button {
 }
 
 /* ==========================================================================
-   Player Modal & Server Switcher Dropdown
+   Player Modal & Server Switcher Dropdown (Permanent Header Bar)
    ========================================================================== */
 .player-modal {
   position: fixed;
   inset: 0;
-  background: #000;
+  background: #030712;
   z-index: 3000;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-}
-
-.player-modal.hide-cursor {
-  cursor: none;
-}
-
-.player-top-hover-trigger {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 70px;
-  z-index: 180;
-  pointer-events: auto;
-}
-
-.player-reveal-tab {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  padding: 0.35rem 1rem 0.45rem;
-  background: rgba(15, 23, 42, 0.85);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid var(--border-glass-bright);
-  border-top: none;
-  border-radius: 0 0 12px 12px;
-  color: var(--text-muted);
-  font-size: 0.75rem;
-  font-weight: 600;
-  cursor: pointer;
-  z-index: 190;
-  opacity: 0.65;
-  transition: all 0.25s ease;
-  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
-}
-
-.player-reveal-tab:hover {
-  opacity: 1;
-  color: #fff;
-  background: rgba(30, 41, 59, 0.95);
-  box-shadow: 0 6px 20px rgba(99, 102, 241, 0.3);
+  width: 100vw;
+  height: 100vh;
 }
 
 .player-header {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 68px;
-  background: rgba(8, 10, 16, 0.94);
+  position: relative;
+  width: 100%;
+  height: 64px;
+  flex-shrink: 0;
+  background: rgba(8, 10, 16, 0.95);
   backdrop-filter: blur(32px);
   -webkit-backdrop-filter: blur(32px);
   border-bottom: 1px solid var(--border-glass-bright);
-  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.7);
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.6);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 1.75rem;
+  padding: 0 1.5rem;
   z-index: 200;
-  transition: transform 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.35s ease;
-  will-change: transform, opacity;
-}
-
-.player-header.hidden {
-  transform: translateY(-100%);
-  opacity: 0;
-  pointer-events: none;
 }
 
 .player-title-info {
@@ -1680,11 +1627,10 @@ button {
 }
 
 .player-bottom-bar {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 56px;
+  position: relative;
+  width: 100%;
+  height: 52px;
+  flex-shrink: 0;
   background: rgba(8, 10, 16, 0.95);
   backdrop-filter: blur(24px);
   -webkit-backdrop-filter: blur(24px);
@@ -1692,15 +1638,8 @@ button {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 1.75rem;
+  padding: 0 1.5rem;
   z-index: 100;
-  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.4s ease;
-}
-
-.player-bottom-bar.hidden {
-  transform: translateY(100%);
-  opacity: 0;
-  pointer-events: none;
 }
 
 .episode-nav-controls {

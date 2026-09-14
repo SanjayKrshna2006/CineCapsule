@@ -42,52 +42,10 @@ export default function PlayerModal({
   const [showDrawer, setShowDrawer] = useState(false);
   const [iframeKey, setIframeKey] = useState(0);
   const [showServerMenu, setShowServerMenu] = useState(false);
-  const [showControls, setShowControls] = useState(true);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [isHoveringHeader, setIsHoveringHeader] = useState(false);
 
   const containerRef = useRef(null);
   const serverMenuRef = useRef(null);
-  const hideTimerRef = useRef(null);
-  const isHoveringRef = useRef(false);
-
-  // Auto-hide player header and title when watching
-  const resetHideTimer = useCallback(() => {
-    setShowControls(true);
-    if (hideTimerRef.current) {
-      clearTimeout(hideTimerRef.current);
-    }
-    // Never auto-hide if user is hovering header or menus are open
-    if (!isHoveringRef.current && !showServerMenu && !showDrawer) {
-      hideTimerRef.current = setTimeout(() => {
-        if (!isHoveringRef.current && !showServerMenu && !showDrawer) {
-          setShowControls(false);
-        }
-      }, 3500);
-    }
-  }, [showServerMenu, showDrawer]);
-
-  const handleHeaderMouseEnter = useCallback(() => {
-    isHoveringRef.current = true;
-    setIsHoveringHeader(true);
-    setShowControls(true);
-    if (hideTimerRef.current) {
-      clearTimeout(hideTimerRef.current);
-    }
-  }, []);
-
-  const handleHeaderMouseLeave = useCallback(() => {
-    isHoveringRef.current = false;
-    setIsHoveringHeader(false);
-    resetHideTimer();
-  }, [resetHideTimer]);
-
-  useEffect(() => {
-    resetHideTimer();
-    return () => {
-      if (hideTimerRef.current) clearTimeout(hideTimerRef.current);
-    };
-  }, [resetHideTimer]);
 
   // Track fullscreen state changes
   useEffect(() => {
@@ -146,6 +104,78 @@ export default function PlayerModal({
     }
   }, []);
 
+  // Fetch TV / Anime Seasons & Episodes
+  useEffect(() => {
+    if (!isTv || !tmdbId) return;
+
+    let isMounted = true;
+    const fetchSeasons = async () => {
+      try {
+        const details = await tmdb.getTvDetails(tmdbId);
+        if (!isMounted) return;
+
+        const validSeasons = (details.seasons || []).filter(s => s.season_number > 0);
+        setSeasons(validSeasons);
+
+        const currentSeasonObj = validSeasons.find(s => s.season_number === currentSeason) || validSeasons[0];
+        if (currentSeasonObj) {
+          fetchEpisodesForSeason(currentSeasonObj.season_number);
+        }
+      } catch (err) {
+        console.error('Failed to fetch seasons:', err);
+      }
+    };
+
+    fetchSeasons();
+    return () => { isMounted = false; };
+  }, [isTv, tmdbId]);
+
+  const fetchEpisodesForSeason = async (seasonNum) => {
+    setLoadingEpisodes(true);
+    try {
+      const data = await tmdb.getTvSeason(tmdbId, seasonNum);
+      setEpisodes(data.episodes || []);
+    } catch (err) {
+      console.error(`Failed to fetch season ${seasonNum} episodes:`, err);
+      setEpisodes([]);
+    } finally {
+      setLoadingEpisodes(false);
+    }
+  };
+
+  const handleSeasonSelect = (seasonNum) => {
+    setCurrentSeason(seasonNum);
+    setCurrentEpisode(1);
+    fetchEpisodesForSeason(seasonNum);
+    setIframeKey(k => k + 1);
+  };
+
+  const handleEpisodeSelect = (epNum) => {
+    setCurrentEpisode(epNum);
+    setIframeKey(k => k + 1);
+    setShowDrawer(false);
+  };
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape') {
+        if (showServerMenu) {
+          setShowServerMenu(false);
+        } else if (showDrawer) {
+          setShowDrawer(false);
+        } else {
+          onClose();
+        }
+      } else if (e.key === 'f' || e.key === 'F') {
+        toggleFullscreen();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [onClose, toggleFullscreen, showServerMenu, showDrawer]);
+
+  // Click outside to close server menu
   useEffect(() => {
     const handleClickOutside = (e) => {
       if (serverMenuRef.current && !serverMenuRef.current.contains(e.target)) {
@@ -155,86 +185,27 @@ export default function PlayerModal({
     if (showServerMenu) {
       document.addEventListener('mousedown', handleClickOutside);
     }
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [showServerMenu]);
 
-  // Load TV show seasons and episodes if it is a TV series or Anime
-  useEffect(() => {
-    if (!media || !isTv) return;
-
-    let isMounted = true;
-    tmdb.getDetails(tmdbId, 'tv').then(details => {
-      if (!isMounted || !details) return;
-
-      const validSeasons = (details.seasons || []).filter(s => s.season_number > 0);
-      setSeasons(validSeasons);
-
-      if (validSeasons.length > 0 && !validSeasons.some(s => s.season_number === currentSeason)) {
-        setCurrentSeason(validSeasons[0].season_number);
-      }
-    });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [media, isTv, tmdbId]);
-
-  // Load episode list for the selected season
-  useEffect(() => {
-    if (!media || !isTv) return;
-
-    let isMounted = true;
-    setLoadingEpisodes(true);
-
-    tmdb.getSeasonDetails(tmdbId, currentSeason).then(eps => {
-      if (!isMounted) return;
-      setEpisodes(eps);
-      setLoadingEpisodes(false);
-    });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [media, isTv, tmdbId, currentSeason]);
-
-  // Save to Continue Watching history whenever media or episode changes
+  // Track watch history
   useEffect(() => {
     if (!media) return;
+    storage.addHistory({
+      ...media,
+      lastSeason: isTv ? currentSeason : undefined,
+      lastEpisode: isTv ? currentEpisode : undefined,
+      playedAt: new Date().toISOString()
+    });
 
-    const historyItem = {
-      id: media.id,
-      title,
-      poster_path: media.poster_path,
-      backdrop_path: media.backdrop_path,
-      media_type: isTv ? 'tv' : 'movie',
-      isAnime: media.isAnime || isAnime || false,
-      vote_average: media.vote_average,
-      season: isTv ? currentSeason : undefined,
-      episode: isTv ? currentEpisode : undefined
-    };
-
-    storage.saveHistory(historyItem);
-    if (onProgressUpdate) onProgressUpdate(historyItem);
-  }, [media, isTv, isAnime, currentSeason, currentEpisode, title, onProgressUpdate]);
-
-  // Handle keyboard shortcuts
-  useEffect(() => {
-    const handleKey = (e) => {
-      if (e.key === 'Escape') {
-        if (isFullscreen) {
-          toggleFullscreen();
-        } else {
-          onClose();
-        }
-      } else if (e.key === 'f' || e.key === 'F') {
-        toggleFullscreen();
-      }
-    };
-    window.addEventListener('keydown', handleKey);
-    return () => window.removeEventListener('keydown', handleKey);
-  }, [onClose, isFullscreen, toggleFullscreen]);
+    if (onProgressUpdate) {
+      onProgressUpdate({
+        id: media.id,
+        season: currentSeason,
+        episode: currentEpisode
+      });
+    }
+  }, [media, currentSeason, currentEpisode, isTv]);
 
   if (!media) return null;
 
@@ -279,46 +250,10 @@ export default function PlayerModal({
     }
   };
 
-  const isHeaderActive = showControls || showServerMenu || showDrawer || isHoveringHeader;
-
   return (
-    <div
-      className={`player-modal ${!isHeaderActive ? 'hide-cursor' : ''}`}
-      ref={containerRef}
-      onMouseMove={resetHideTimer}
-      onTouchStart={resetHideTimer}
-      onClick={resetHideTimer}
-    >
-      {/* Top Hover Zone to smoothly reveal header when mouse moves near top */}
-      <div
-        className="player-top-hover-trigger"
-        onMouseEnter={handleHeaderMouseEnter}
-        onMouseMove={resetHideTimer}
-      />
-
-      {/* Subtle Floating Tab when header is hidden to easily bring it back */}
-      {!isHeaderActive && (
-        <button
-          className="player-reveal-tab"
-          onClick={() => {
-            setShowControls(true);
-            resetHideTimer();
-          }}
-          onMouseEnter={handleHeaderMouseEnter}
-          title="Show Controls & Info"
-          aria-label="Show Controls"
-        >
-          <ChevronDown size={18} />
-          <span>Controls</span>
-        </button>
-      )}
-
-      {/* Auto-Hiding Glass Header Bar with Title and Controls */}
-      <header
-        className={`player-header ${!isHeaderActive ? 'hidden' : ''}`}
-        onMouseEnter={handleHeaderMouseEnter}
-        onMouseLeave={handleHeaderMouseLeave}
-      >
+    <div className="player-modal" ref={containerRef}>
+      {/* Permanent Glass Header Bar with Title, Controls & Server Switcher */}
+      <header className="player-header">
         <div className="player-title-info">
           <button
             className="modal-close-btn"
@@ -332,7 +267,7 @@ export default function PlayerModal({
           >
             <X size={18} />
           </button>
-          <div>
+          <div className="player-title-text-wrap">
             <h2 className="player-title">{title}</h2>
             {isTv && (
               <span className="player-subinfo">
@@ -372,7 +307,6 @@ export default function PlayerModal({
                         onClick={() => {
                           handleServerChange({ target: { value: srv.id } });
                           setShowServerMenu(false);
-                          resetHideTimer();
                         }}
                       >
                         <div className="server-item-left">
@@ -401,10 +335,7 @@ export default function PlayerModal({
             <button
               className="btn-icon-round"
               style={{ width: '38px', height: '38px' }}
-              onClick={() => {
-                setShowDrawer(!showDrawer);
-                resetHideTimer();
-              }}
+              onClick={() => setShowDrawer(!showDrawer)}
               title="Toggle Episode Drawer"
               aria-label="Toggle Episode Drawer"
             >
@@ -420,7 +351,6 @@ export default function PlayerModal({
             onClick={(e) => {
               e.stopPropagation();
               toggleFullscreen();
-              resetHideTimer();
             }}
             title={isFullscreen ? "Exit Fullscreen (F)" : "Fullscreen Mode (F)"}
             aria-label="Toggle Fullscreen"
@@ -436,16 +366,17 @@ export default function PlayerModal({
           <iframe
             key={`${currentStreamUrl}-${iframeKey}`}
             src={currentStreamUrl}
-            title={`Streaming: ${title}`}
-            className="streaming-iframe"
-            allow="autoplay; fullscreen; encrypted-media; picture-in-picture"
+            title={`${title} - Player`}
+            className="player-iframe"
             allowFullScreen
+            allow="autoplay; fullscreen; encrypted-media; picture-in-picture; cross-origin-isolated"
+            sandbox="allow-forms allow-modals allow-orientation-lock allow-pointer-lock allow-popups-to-escape-sandbox allow-presentation allow-same-origin allow-scripts"
           />
         </div>
 
         {/* TV Series / Anime Episode Drawer */}
         {isTv && showDrawer && (
-          <aside className="episode-drawer" onMouseEnter={() => setShowControls(true)}>
+          <aside className="episode-drawer">
             <div className="episode-drawer-header">
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <span style={{ fontSize: '0.9rem', fontWeight: '700', color: 'var(--text-main)' }}>
@@ -456,58 +387,48 @@ export default function PlayerModal({
                 </span>
               </div>
 
+              {/* Season Selector Tabs */}
               {seasons.length > 1 && (
-                <select
-                  className="season-select"
-                  value={currentSeason}
-                  onChange={(e) => {
-                    setCurrentSeason(Number(e.target.value));
-                    setCurrentEpisode(1);
-                    setIframeKey(k => k + 1);
-                    resetHideTimer();
-                  }}
-                >
+                <div className="season-tabs-scroll">
                   {seasons.map(s => (
-                    <option key={s.id} value={s.season_number}>
-                      {s.name || `Season ${s.season_number}`} ({s.episode_count} eps)
-                    </option>
+                    <button
+                      key={s.id}
+                      className={`season-tab-chip ${currentSeason === s.season_number ? 'active' : ''}`}
+                      onClick={() => handleSeasonSelect(s.season_number)}
+                    >
+                      Season {s.season_number}
+                    </button>
                   ))}
-                </select>
+                </div>
               )}
             </div>
 
-            <div className="episode-list">
+            <div className="episode-list-container">
               {loadingEpisodes ? (
-                <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  Loading episodes...
+                <div className="episode-loading">
+                  <div className="spinner" />
+                  <span>Loading episodes...</span>
                 </div>
               ) : (
                 episodes.map(ep => {
-                  const isActive = ep.episode_number === currentEpisode;
+                  const isCurrent = ep.episode_number === currentEpisode;
                   return (
                     <div
                       key={ep.id}
-                      className={`episode-card ${isActive ? 'active' : ''}`}
-                      onClick={() => {
-                        setCurrentEpisode(ep.episode_number);
-                        setIframeKey(k => k + 1);
-                        resetHideTimer();
-                      }}
+                      className={`episode-card ${isCurrent ? 'active' : ''}`}
+                      onClick={() => handleEpisodeSelect(ep.episode_number)}
                     >
-                      <div className="episode-still-wrap">
+                      <div className="episode-card-thumb">
                         <img
-                          src={getImageUrl(ep.still_path || media.backdrop_path, 'w300')}
+                          src={getImageUrl(ep.still_path, 'w500') || getImageUrl(media.backdrop_path, 'w500')}
                           alt={ep.name}
-                          className="episode-still"
                           loading="lazy"
-                          onError={(e) => {
-                            e.target.src = 'https://images.unsplash.com/photo-1574267432553-4b4628081c31?q=80&w=300&auto=format&fit=crop';
-                          }}
                         />
+                        <span className="ep-num-badge">EP {ep.episode_number}</span>
                       </div>
-                      <div className="episode-info">
-                        <span className="episode-num">Episode {ep.episode_number}</span>
-                        <h4 className="episode-title">{ep.name || `Episode ${ep.episode_number}`}</h4>
+                      <div className="episode-card-info">
+                        <div className="ep-title">{ep.name || `Episode ${ep.episode_number}`}</div>
+                        <p className="ep-overview">{ep.overview || 'No description available for this episode.'}</p>
                       </div>
                     </div>
                   );
@@ -518,27 +439,35 @@ export default function PlayerModal({
         )}
       </div>
 
-      {/* Bottom Bar Controls (TV series navigation only) */}
+      {/* Permanent Bottom Bar Controls (TV series navigation only) */}
       {isTv && (
-        <div className={`player-bottom-bar ${!isHeaderActive ? 'hidden' : ''}`}>
+        <div className="player-bottom-bar">
           <div className="episode-nav-controls">
             <button
               className="ep-nav-btn"
               onClick={handlePrevEpisode}
               disabled={currentEpisode <= 1}
             >
-              <ChevronLeft size={16} />
-              <span>Previous Episode</span>
+              <ChevronLeft size={16} /> Prev Episode
             </button>
-
+            <span className="current-ep-indicator">
+              Season {currentSeason} : Episode {currentEpisode}
+            </span>
             <button
               className="ep-nav-btn"
               onClick={handleNextEpisode}
+              disabled={episodes.length > 0 && currentEpisode >= episodes.length}
             >
-              <span>Next Episode</span>
-              <ChevronRight size={16} />
+              Next Episode <ChevronRight size={16} />
             </button>
           </div>
+
+          <button
+            className="ep-nav-btn drawer-toggle-btn"
+            onClick={() => setShowDrawer(!showDrawer)}
+          >
+            <ListVideo size={16} /> Episodes List
+          </button>
         </div>
       )}
     </div>
