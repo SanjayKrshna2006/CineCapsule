@@ -36,12 +36,12 @@ export const TMDB_GENRES = {
     { id: 10765, name: 'Sci-Fi & Fantasy' },
     { id: 10768, name: 'War & Politics' }
   ],
-  anime: [
+    anime: [
     { id: 'trending', name: '🔥 Trending Anime' },
     { id: 'action', name: '⚔️ Shonen & Action', genreId: 10759 },
     { id: 'fantasy', name: '✨ Fantasy & Isekai', genreId: 10765 },
     { id: 'comedy', name: '😂 Comedy', genreId: 35 },
-    { id: 'mystery', name: '🕵️ Mystery & Thriller', genreId: 9648 },
+    { id: 'mystery', name: '🔍 Mystery & Thriller', genreId: 9648 },
     { id: 'drama', name: '🎭 Drama & Slice of Life', genreId: 18 },
     { id: 'movies', name: '🎬 Anime Movies', isMovie: true }
   ]
@@ -111,7 +111,7 @@ export const tmdb = {
       return [
         { title: '🔥 Trending Movies', type: 'movie', items: (trendingMovies.results || []).map(i => ({ ...i, media_type: 'movie' })) },
         { title: '📺 Trending TV Series', type: 'tv', items: (trendingTv.results || []).map(i => ({ ...i, media_type: 'tv' })) },
-        { title: '⚡ Popular Anime Series', type: 'anime', items: (popularAnime.results || []).map(i => ({ ...i, media_type: 'tv', isAnime: true })) },
+        { title: '🎌 Popular Anime Series', type: 'anime', items: (popularAnime.results || []).map(i => ({ ...i, media_type: 'tv', isAnime: true })) },
         { title: '⭐ All-Time Masterpieces', type: 'movie', items: (topRatedMovies.results || []).map(i => ({ ...i, media_type: 'movie' })) },
         { title: '🎬 Feature Anime Films', type: 'anime', items: (animeMovies.results || []).map(i => ({ ...i, media_type: 'movie', isAnime: true })) },
         { title: '🍿 Hit TV Series', type: 'tv', items: (netflixShows.results || []).map(i => ({ ...i, media_type: 'tv' })) }

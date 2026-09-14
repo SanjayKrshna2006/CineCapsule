@@ -15,7 +15,9 @@ export default function CategoryView({ type = 'movies', onPlay, onOpenDetail, on
     ? TMDB_GENRES.anime
     : (type === 'tv' ? TMDB_GENRES.tv : TMDB_GENRES.movie);
 
-  const title = type === 'anime' ? '⛩️ Anime Universe' : (type === 'tv' ? '📺 TV Series Hub' : '🎬 Movies Collection');
+  const title = type === 'anime'
+    ? '🎌 Anime Universe'
+    : (type === 'tv' ? '📺 TV Series Hub' : '🎬 Movies Collection');
 
   const loadData = async (targetCategory, targetGenre, targetPage, isAppend = false) => {
     setLoading(true);
