@@ -13,7 +13,7 @@ import {
   Loader2,
   Play
 } from 'lucide-react';
-import { STREAM_SERVERS, ANIME_SERVER, getStreamUrl } from '../services/servers';
+import { STREAM_SERVERS, ANIME_SERVERS, ANIME_SERVER, getStreamUrl } from '../services/servers';
 import { tmdb, getImageUrl } from '../services/tmdb';
 import { storage } from '../services/storage';
 
@@ -40,7 +40,7 @@ export default function PlayerModal({
   const tmdbId = media?.id;
   const title = media?.title || media?.name || 'Now Playing';
 
-  const availableServers = isAnime ? [ANIME_SERVER] : STREAM_SERVERS;
+  const availableServers = isAnime ? ANIME_SERVERS : STREAM_SERVERS;
 
   // Lock anime strictly to AnimeSalt server
   useEffect(() => {

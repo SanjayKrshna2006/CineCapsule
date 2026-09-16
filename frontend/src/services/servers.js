@@ -63,18 +63,34 @@ export function cleanAnimeSlug(title = '') {
     .replace(/^-+|-+$/g, '');
 }
 
-export const ANIME_SERVER = {
-  id: 'animesalt',
-  name: 'Anime Server (animesalt.cx)',
-  getMovieUrl: (tmdbId, title = '') => {
-    const slug = cleanAnimeSlug(title);
-    return `/api/animesalt-stream?id=${tmdbId || ''}&slug=${encodeURIComponent(slug)}&title=${encodeURIComponent(title || '')}&movie=true`;
+export const ANIME_SERVERS = [
+  {
+    id: 'animesalt-sub',
+    name: 'Server 1 (Sub)',
+    getMovieUrl: (tmdbId, title = '') => {
+      const slug = cleanAnimeSlug(title);
+      return `/api/animesalt-stream?id=${tmdbId || ''}&slug=${encodeURIComponent(slug)}&title=${encodeURIComponent(title || '')}&movie=true&audio=sub`;
+    },
+    getTvUrl: (tmdbId, season = 1, episode = 1, title = '') => {
+      const slug = cleanAnimeSlug(title);
+      return `/api/animesalt-stream?id=${tmdbId || ''}&slug=${encodeURIComponent(slug)}&title=${encodeURIComponent(title || '')}&s=${season || 1}&e=${episode || 1}&audio=sub`;
+    }
   },
-  getTvUrl: (tmdbId, season = 1, episode = 1, title = '') => {
-    const slug = cleanAnimeSlug(title);
-    return `/api/animesalt-stream?id=${tmdbId || ''}&slug=${encodeURIComponent(slug)}&title=${encodeURIComponent(title || '')}&s=${season || 1}&e=${episode || 1}`;
+  {
+    id: 'animesalt-dub',
+    name: 'Server 2 (Dub)',
+    getMovieUrl: (tmdbId, title = '') => {
+      const slug = cleanAnimeSlug(title);
+      return `/api/animesalt-stream?id=${tmdbId || ''}&slug=${encodeURIComponent(slug)}&title=${encodeURIComponent(title || '')}&movie=true&audio=dub`;
+    },
+    getTvUrl: (tmdbId, season = 1, episode = 1, title = '') => {
+      const slug = cleanAnimeSlug(title);
+      return `/api/animesalt-stream?id=${tmdbId || ''}&slug=${encodeURIComponent(slug)}&title=${encodeURIComponent(title || '')}&s=${season || 1}&e=${episode || 1}&audio=dub`;
+    }
   }
-};
+];
+
+export const ANIME_SERVER = ANIME_SERVERS[0];
 
 export const STREAM_SERVERS = [
   {
@@ -98,11 +114,12 @@ export const STREAM_SERVERS = [
 ];
 
 export function getStreamUrl(serverId, mediaType, tmdbId, season = 1, episode = 1, isAnime = false, mediaTitle = '') {
-  // ALL ANIME STRICTLY PLAYS FROM ANIMESALT.CX
-  if (isAnime || mediaType === 'anime' || serverId === 'animesalt') {
+  // ANIME ROUTING (Server 1 Sub or Server 2 Dub)
+  if (isAnime || mediaType === 'anime' || serverId?.startsWith('animesalt')) {
+    const srv = ANIME_SERVERS.find(s => s.id === serverId) || ANIME_SERVERS[0];
     return (mediaType === 'movie' || (!season && !episode))
-      ? ANIME_SERVER.getMovieUrl(tmdbId, mediaTitle)
-      : ANIME_SERVER.getTvUrl(tmdbId, season || 1, episode || 1, mediaTitle);
+      ? srv.getMovieUrl(tmdbId, mediaTitle)
+      : srv.getTvUrl(tmdbId, season || 1, episode || 1, mediaTitle);
   }
 
   const server = STREAM_SERVERS.find(s => s.id === serverId) || STREAM_SERVERS[0];
