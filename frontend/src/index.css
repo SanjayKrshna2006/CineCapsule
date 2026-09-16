@@ -2237,3 +2237,563 @@ button {
   letter-spacing: 0.5px;
   flex-shrink: 0;
 }
+
+
+/* ==========================================================================
+   MOBILE & TABLET ULTRA-RESPONSIVE SYSTEM (CineCapsule v2.0)
+   ========================================================================== */
+
+/* Universal Touch & Safe-Area Optimizations */
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  padding-bottom: 0;
+  overscroll-behavior-y: none;
+}
+
+/* Mobile Bottom Navigation Bar (App-like UX for Phones) */
+.mobile-bottom-nav {
+  display: none;
+}
+
+@media (max-width: 768px) {
+  /* Reserve space at the bottom of the page so content doesn't get hidden behind bottom nav */
+  body {
+    padding-bottom: calc(64px + env(safe-area-inset-bottom, 12px));
+  }
+
+  .mobile-bottom-nav {
+    display: block;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 900;
+    background: rgba(9, 11, 18, 0.92);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.6);
+    padding-bottom: env(safe-area-inset-bottom, 8px);
+  }
+
+  .mobile-bottom-nav-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+    height: 60px;
+    max-width: 500px;
+    margin: 0 auto;
+    padding: 0 0.5rem;
+  }
+
+  .mobile-bottom-tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    padding: 6px 4px;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    user-select: none;
+  }
+
+  .mobile-bottom-tab:active {
+    transform: scale(0.92);
+  }
+
+  .mobile-bottom-tab.active {
+    color: var(--primary);
+  }
+
+  .mobile-tab-icon-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 24px;
+    transition: transform 0.2s ease;
+  }
+
+  .mobile-bottom-tab.active .mobile-tab-icon-wrap {
+    transform: translateY(-2px);
+    color: var(--primary);
+    filter: drop-shadow(0 0 8px rgba(255, 46, 99, 0.6));
+  }
+
+  .mobile-tab-label {
+    font-size: 0.68rem;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+    transition: color 0.2s ease;
+  }
+
+  .mobile-bottom-tab.active .mobile-tab-label {
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .mobile-tab-active-dot {
+    position: absolute;
+    bottom: 2px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: var(--primary);
+    box-shadow: 0 0 6px var(--primary);
+  }
+
+  .mobile-tab-badge {
+    position: absolute;
+    top: -4px;
+    right: -8px;
+    background: var(--primary);
+    color: #fff;
+    font-size: 0.6rem;
+    font-weight: 800;
+    min-width: 16px;
+    height: 16px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 4px;
+    border: 1.5px solid #090b12;
+  }
+
+  /* Top Navbar on Mobile */
+  .navbar {
+    padding: 0 1rem;
+    height: 60px;
+  }
+
+  .brand-text {
+    font-size: 1.15rem;
+  }
+
+  .brand-icon-wrap {
+    width: 32px;
+    height: 32px;
+  }
+
+  .desktop-nav,
+  .desktop-only-search {
+    display: none !important;
+  }
+
+  .mobile-search-btn {
+    display: flex !important;
+    width: 38px;
+    height: 38px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #fff;
+    border-radius: 50%;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .mobile-search-btn:active {
+    background: rgba(255, 46, 99, 0.2);
+    border-color: var(--primary);
+  }
+
+  /* Hero Banner on Mobile */
+  .hero-section {
+    height: 72vh;
+    min-height: 480px;
+    padding: 0 1.25rem 2.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .hero-content {
+    max-width: 100%;
+    gap: 0.85rem;
+  }
+
+  .hero-badges {
+    gap: 0.4rem;
+    flex-wrap: wrap;
+  }
+
+  .hero-tag, .rating-badge, .hero-year-tag {
+    font-size: 0.72rem;
+    padding: 0.25rem 0.6rem;
+  }
+
+  .hero-title {
+    font-size: clamp(1.75rem, 7vw, 2.6rem);
+    line-height: 1.15;
+    margin-bottom: 0.2rem;
+  }
+
+  .hero-overview {
+    font-size: 0.88rem;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    margin-bottom: 0.5rem;
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  .hero-actions {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 0.6rem;
+    width: 100%;
+  }
+
+  .hero-actions .btn-primary {
+    flex: 2;
+    justify-content: center;
+    padding: 0.75rem 1rem;
+    font-size: 0.95rem;
+  }
+
+  .hero-actions .btn-secondary {
+    flex: 1.5;
+    justify-content: center;
+    padding: 0.75rem 0.8rem;
+    font-size: 0.9rem;
+  }
+
+  .hero-actions .glass-icon-btn {
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+  }
+
+  .hero-dots {
+    bottom: 0.75rem;
+  }
+
+  .hero-dot {
+    width: 7px;
+    height: 7px;
+  }
+
+  .hero-dot.active {
+    width: 22px;
+  }
+
+  /* Main Content Spacing on Mobile */
+  .main-content {
+    padding: 0 1rem 3rem;
+    gap: 2.2rem;
+  }
+
+  /* Sliders & Cards on Mobile */
+  .media-slider-wrap {
+    margin-bottom: 1.25rem;
+  }
+
+  .slider-header {
+    margin-bottom: 0.75rem;
+  }
+
+  .slider-title {
+    font-size: 1.2rem;
+  }
+
+  .slider-controls {
+    display: none; /* Swipe native on touch */
+  }
+
+  .slider-track {
+    gap: 0.85rem;
+    padding: 0.35rem 0.2rem 0.85rem;
+    scroll-snap-type: x proximity;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .media-card {
+    flex: 0 0 145px;
+    width: 145px;
+    scroll-snap-align: start;
+  }
+
+  .card-poster-wrap {
+    border-radius: 12px;
+  }
+
+  .card-title {
+    font-size: 0.85rem;
+    margin-top: 0.4rem;
+  }
+
+  .card-meta {
+    font-size: 0.75rem;
+  }
+
+  /* Media Grid on Mobile (Movies/Series/Anime/Watchlist tabs) */
+  .media-grid {
+    grid-template-columns: repeat(auto-fill, minmax(135px, 1fr)) !important;
+    gap: 0.85rem !important;
+  }
+
+  /* Filter Bar on Mobile */
+  .filter-bar {
+    display: flex;
+    overflow-x: auto;
+    white-space: nowrap;
+    gap: 0.5rem;
+    padding: 0.2rem 0 0.6rem;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .filter-bar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .filter-pill {
+    font-size: 0.82rem;
+    padding: 0.45rem 0.85rem;
+    flex-shrink: 0;
+  }
+
+  /* Detail Modal on Mobile */
+  .modal-backdrop {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .detail-modal {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 92vh !important;
+    max-height: 92vh !important;
+    border-radius: 20px 20px 0 0 !important;
+    overflow-y: auto !important;
+    border-bottom: none !important;
+  }
+
+  .modal-close-btn {
+    top: 12px;
+    right: 12px;
+    width: 36px;
+    height: 36px;
+    background: rgba(0, 0, 0, 0.7);
+    backdrop-filter: blur(12px);
+    z-index: 100;
+  }
+
+  .detail-hero {
+    height: 280px !important;
+    padding: 1.25rem 1rem !important;
+  }
+
+  .detail-hero-content {
+    flex-direction: row;
+    gap: 1rem;
+    align-items: flex-end;
+  }
+
+  .detail-poster {
+    width: 100px !important;
+    border-radius: 8px !important;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
+  }
+
+  .detail-title {
+    font-size: 1.35rem !important;
+    line-height: 1.2;
+  }
+
+  .detail-metadata-row {
+    font-size: 0.78rem;
+    gap: 0.5rem;
+  }
+
+  .detail-body {
+    padding: 1.25rem 1rem 3rem !important;
+    gap: 1.5rem;
+  }
+
+  .detail-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+  }
+
+  .detail-actions .btn-primary {
+    grid-column: 1 / -1;
+    justify-content: center;
+    padding: 0.85rem;
+    font-size: 1rem;
+  }
+
+  .detail-actions .btn-secondary {
+    justify-content: center;
+    padding: 0.75rem 0.5rem;
+    font-size: 0.85rem;
+  }
+
+  /* Episode Detailed List in Detail Modal */
+  .episodes-detailed-list {
+    gap: 0.6rem;
+  }
+
+  .episode-list-row {
+    padding: 0.6rem 0.75rem;
+    gap: 0.75rem;
+  }
+
+  .episode-index-number {
+    font-size: 0.95rem;
+    min-width: 20px;
+  }
+
+  .episode-row-thumb {
+    width: 85px;
+  }
+
+  .episode-row-name {
+    font-size: 0.88rem;
+  }
+
+  .episode-row-overview {
+    font-size: 0.75rem;
+    -webkit-line-clamp: 2;
+  }
+
+  /* ==========================================================================
+     Mobile Cinema Player Modal
+     ========================================================================== */
+  .player-modal-container {
+    width: 100vw !important;
+    height: 100vh !important;
+    border-radius: 0 !important;
+    border: none !important;
+  }
+
+  .player-header {
+    height: 52px;
+    padding: 0 0.75rem;
+    gap: 0.5rem;
+  }
+
+  .player-title {
+    font-size: 0.85rem;
+    max-width: 160px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .player-header-actions {
+    gap: 0.4rem;
+  }
+
+  .server-select-btn {
+    padding: 0.35rem 0.65rem;
+    font-size: 0.78rem;
+    height: 32px;
+  }
+
+  .server-select-btn svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  .btn-icon-round {
+    width: 32px !important;
+    height: 32px !important;
+  }
+
+  .player-content-area {
+    position: relative;
+    height: calc(100vh - 52px);
+  }
+
+  .player-iframe-container {
+    height: 100%;
+    width: 100%;
+  }
+
+  /* Episode Drawer Bottom Sheet on Mobile */
+  .episode-drawer-panel {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100vw !important;
+    height: 70vh !important;
+    max-height: 70vh !important;
+    border-radius: 20px 20px 0 0 !important;
+    border-left: none !important;
+    border-top: 1px solid var(--border-glass-bright) !important;
+    box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.8) !important;
+    z-index: 200 !important;
+    animation: slideUpMobile 0.3s cubic-bezier(0.16, 1, 0.3, 1) !important;
+  }
+
+  @keyframes slideUpMobile {
+    from {
+      transform: translateY(100%);
+    }
+    to {
+      transform: translateY(0);
+    }
+  }
+
+  .player-bottom-bar {
+    padding: 0.6rem 0.85rem;
+    height: 50px;
+  }
+
+  .ep-nav-btn {
+    padding: 0.4rem 0.75rem;
+    font-size: 0.78rem;
+  }
+
+  .current-ep-indicator {
+    font-size: 0.78rem;
+  }
+
+  /* Search Overlay on Mobile */
+  .search-modal {
+    width: 100% !important;
+    height: 100% !important;
+    max-width: 100% !important;
+    border-radius: 0 !important;
+    padding: 1.25rem 1rem !important;
+    border: none !important;
+  }
+
+  .search-input-field {
+    font-size: 1.05rem;
+    height: 48px;
+  }
+
+  .search-kbd {
+    display: none;
+  }
+}
+
+/* Small Phone Tweaks (< 480px) */
+@media (max-width: 480px) {
+  .media-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+    gap: 0.65rem !important;
+  }
+
+  .hero-title {
+    font-size: 1.75rem;
+  }
+
+  .media-card {
+    flex: 0 0 135px;
+    width: 135px;
+  }
+}
