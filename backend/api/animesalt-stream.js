@@ -21,7 +21,6 @@ function scoreSlugMatch(query, slug) {
     }
   }
 
-  // Heavy bonus if the first distinct word of title matches slug (e.g. 'boruto' in slug, 'hattori' in slug)
   if (qWords[0] && slug.toLowerCase().includes(qWords[0])) {
     score += 5;
   }
@@ -32,26 +31,7 @@ function scoreSlugMatch(query, slug) {
   return score;
 }
 
-// Find best player iframe inside an AnimeSalt episode HTML
-function extractPlayerIframe(html) {
-  const iframes = [...html.matchAll(/<iframe[^>]+(?:src|data-src)="([^"]+)"/gi)].map(m => m[1]);
-  if (!iframes || iframes.length === 0) return null;
-
-  // Priority ranking for AnimeSalt video embed providers
-  const priorityPlayer = iframes.find(u =>
-    u.includes('megaplay.buzz') ||
-    u.includes('as-cdn') ||
-    u.includes('/video/') ||
-    u.includes('player.php') ||
-    u.includes('multi-lang') ||
-    u.includes('stream') ||
-    u.includes('embed')
-  );
-
-  return priorityPlayer || iframes[0];
-}
-
-// Universal AnimeSalt Stream Resolver Engine (STRICTLY animesalt.cx)
+// Universal AnimeSalt Stream Resolver Engine (100% on animesalt.cx)
 const animeCache = new Map();
 
 app.get('/api/animesalt-stream', async (req, res) => {
@@ -90,7 +70,7 @@ app.get('/api/animesalt-stream', async (req, res) => {
         .replace(/^-+|-+$/g, '');
       if (baseTitle && !candidates.includes(baseTitle)) candidates.push(baseTitle);
 
-      // 1. Direct candidate checks on AnimeSalt
+      // 1. Direct candidate checks on animesalt.cx
       for (const cand of candidates) {
         const targetUrls = isMovie
           ? [`https://animesalt.cx/movies/${cand}/`, `https://animesalt.cx/anime/${cand}/`]
@@ -110,29 +90,24 @@ app.get('/api/animesalt-stream', async (req, res) => {
             });
 
             if (pageRes.status === 200) {
-              const html = await pageRes.text();
-              const playerIframe = extractPlayerIframe(html);
-              if (playerIframe) {
-                resolved = {
-                  targetPage: targetUrl,
-                  cdnPlayer: playerIframe,
-                  allIframes: [...html.matchAll(/<iframe[^>]+(?:src|data-src)="([^"]+)"/gi)].map(m => m[1])
-                };
-                break;
-              }
+              resolved = {
+                targetPage: targetUrl,
+                animesaltPage: targetUrl
+              };
+              break;
             }
           } catch (e) {}
         }
         if (resolved) break;
       }
 
-      // 2. Intelligent Search on AnimeSalt with Scoring
+      // 2. Intelligent Search on animesalt.cx with Title Scoring
       if (!resolved) {
         const searchTerms = [rawTitle, baseTitle, cleanTitle].filter(Boolean);
         for (const query of searchTerms) {
           try {
             const searchRes = await fetch(`https://animesalt.cx/?s=${encodeURIComponent(query)}`, {
-              headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36' }
+              headers: { 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)' }
             });
 
             if (searchRes.status === 200) {
@@ -140,7 +115,6 @@ app.get('/api/animesalt-stream', async (req, res) => {
               const matches = [...searchHtml.matchAll(/href="(https:\/\/animesalt\.cx\/(?:series|anime|movies|tvshows)\/([^"/]+)\/?)"/gi)];
               const searchSlugs = [...new Set(matches.map(m => m[2]))];
 
-              // Sort slugs by highest score against query
               searchSlugs.sort((a, b) => scoreSlugMatch(rawTitle || query, b) - scoreSlugMatch(rawTitle || query, a));
 
               for (const s of searchSlugs) {
@@ -155,16 +129,11 @@ app.get('/api/animesalt-stream', async (req, res) => {
                 for (const epUrl of epUrls) {
                   const epRes = await fetch(epUrl, { headers: { 'User-Agent': 'Mozilla/5.0' } });
                   if (epRes.status === 200) {
-                    const epHtml = await epRes.text();
-                    const playerIframe = extractPlayerIframe(epHtml);
-                    if (playerIframe) {
-                      resolved = {
-                        targetPage: epUrl,
-                        cdnPlayer: playerIframe,
-                        allIframes: [...epHtml.matchAll(/<iframe[^>]+(?:src|data-src)="([^"]+)"/gi)].map(m => m[1])
-                      };
-                      break;
-                    }
+                    resolved = {
+                      targetPage: epUrl,
+                      animesaltPage: epUrl
+                    };
+                    break;
                   }
                 }
                 if (resolved) break;
@@ -175,7 +144,7 @@ app.get('/api/animesalt-stream', async (req, res) => {
         }
       }
 
-      // 3. Fallback STRICTLY to AnimeSalt episode / search page
+      // 3. Guaranteed animesalt.cx direct episode URL
       if (!resolved) {
         const targetSlug = slug || cleanTitle || 'anime';
         const fallbackPage = isMovie
@@ -183,8 +152,7 @@ app.get('/api/animesalt-stream', async (req, res) => {
           : `https://animesalt.cx/episode/${targetSlug}-${season}x${episode}/`;
         resolved = {
           targetPage: fallbackPage,
-          cdnPlayer: fallbackPage,
-          allIframes: [fallbackPage]
+          animesaltPage: fallbackPage
         };
       }
 
@@ -196,8 +164,9 @@ app.get('/api/animesalt-stream', async (req, res) => {
       return res.status(200).json(resolved);
     }
 
-    const finalPlayerUrl = resolved.cdnPlayer || resolved.targetPage;
-    return res.redirect(302, finalPlayerUrl);
+    // STRICT REDIRECT TO animesalt.cx DIRECTLY
+    const finalAnimeUrl = resolved.targetPage || resolved.animesaltPage;
+    return res.redirect(302, finalAnimeUrl);
   } catch (err) {
     console.error('[AnimeSalt Backend Error]:', err.message);
     const targetSlug = req.query.slug || 'anime';
