@@ -1,4 +1,4 @@
-// High-Reliability Streaming Server Providers with AnimeSalt Engine for all Anime
+// Streaming Server Providers: NetMirror for Movies & Series, AnimeSalt for Anime
 
 export function cleanAnimeSlug(title = '') {
   let s = (title || '').toLowerCase().trim();
@@ -63,6 +63,7 @@ export function cleanAnimeSlug(title = '') {
     .replace(/^-+|-+$/g, '');
 }
 
+// ANIME ONLY SERVERS (animesalt.cx engine)
 export const ANIME_SERVERS = [
   {
     id: 'animesalt-sub',
@@ -92,36 +93,38 @@ export const ANIME_SERVERS = [
 
 export const ANIME_SERVER = ANIME_SERVERS[0];
 
+// MOVIES & TV SERIES SERVERS (NetMirror as primary Server 1)
 export const STREAM_SERVERS = [
   {
     id: 'netmirror',
-    name: 'Server 1',
+    name: 'Server 1 (NetMirror)',
     getMovieUrl: (tmdbId) => `https://embedmaster.link/movie/${tmdbId}?multiLang=true&audio=all`,
     getTvUrl: (tmdbId, season, episode) => `https://embedmaster.link/tv/${tmdbId}/${season || 1}/${episode || 1}?multiLang=true&audio=all`
   },
   {
     id: 'twoembed',
-    name: 'Server 2',
+    name: 'Server 2 (2Embed)',
     getMovieUrl: (tmdbId) => `https://www.2embed.cc/embed/${tmdbId}`,
     getTvUrl: (tmdbId, season, episode) => `https://www.2embed.cc/embedtv/${tmdbId}&s=${season || 1}&e=${episode || 1}`
   },
   {
     id: 'vidsrc',
-    name: 'Server 3',
+    name: 'Server 3 (VidSrc)',
     getMovieUrl: (tmdbId) => `https://vidsrc.pm/embed/movie/${tmdbId}`,
     getTvUrl: (tmdbId, season, episode) => `https://vidsrc.pm/embed/tv/${tmdbId}/${season || 1}/${episode || 1}`
   }
 ];
 
 export function getStreamUrl(serverId, mediaType, tmdbId, season = 1, episode = 1, isAnime = false, mediaTitle = '') {
-  // ANIME ROUTING (Server 1 Sub or Server 2 Dub)
-  if (isAnime || mediaType === 'anime' || serverId?.startsWith('animesalt')) {
+  // ANIME ROUTING (AnimeSalt only for Anime)
+  if (isAnime || mediaType === 'anime') {
     const srv = ANIME_SERVERS.find(s => s.id === serverId) || ANIME_SERVERS[0];
     return (mediaType === 'movie' || (!season && !episode))
       ? srv.getMovieUrl(tmdbId, mediaTitle)
       : srv.getTvUrl(tmdbId, season || 1, episode || 1, mediaTitle);
   }
 
+  // MOVIES & TV SERIES ROUTING (NetMirror as primary Server 1)
   const server = STREAM_SERVERS.find(s => s.id === serverId) || STREAM_SERVERS[0];
 
   return (mediaType === 'tv')

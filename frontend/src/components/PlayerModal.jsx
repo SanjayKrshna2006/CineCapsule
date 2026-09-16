@@ -42,18 +42,26 @@ export default function PlayerModal({
 
   const availableServers = isAnime ? ANIME_SERVERS : STREAM_SERVERS;
 
-  // Lock anime strictly to AnimeSalt server
+  // Dynamic Server Management: Anime uses AnimeSalt (Sub/Dub), Movies & Series use NetMirror (STREAM_SERVERS)
+  const [selectedServer, setSelectedServer] = useState(() => {
+    if (isAnime) return ANIME_SERVERS[0].id;
+    const saved = storage.getPreferences().server;
+    return saved && STREAM_SERVERS.some(s => s.id === saved) ? saved : 'netmirror';
+  });
+
   useEffect(() => {
     if (isAnime) {
-      setSelectedServer(ANIME_SERVER.id);
+      if (!ANIME_SERVERS.some(s => s.id === selectedServer)) {
+        setSelectedServer(ANIME_SERVERS[0].id);
+      }
+    } else {
+      if (!STREAM_SERVERS.some(s => s.id === selectedServer)) {
+        const saved = storage.getPreferences().server;
+        const defaultServer = saved && STREAM_SERVERS.some(s => s.id === saved) ? saved : 'netmirror';
+        setSelectedServer(defaultServer);
+      }
     }
   }, [isAnime, media]);
-
-  const [selectedServer, setSelectedServer] = useState(() => {
-    if (isAnime) return ANIME_SERVER.id;
-    const saved = storage.getPreferences().server;
-    return saved && STREAM_SERVERS.some(s => s.id === saved) ? saved : STREAM_SERVERS[0].id;
-  });
   const [currentSeason, setCurrentSeason] = useState(initialSeason);
   const [currentEpisode, setCurrentEpisode] = useState(initialEpisode);
   const [seasons, setSeasons] = useState([]);
