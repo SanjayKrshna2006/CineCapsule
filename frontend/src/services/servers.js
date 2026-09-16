@@ -3,16 +3,21 @@
 export function cleanAnimeSlug(title = '') {
   let s = (title || '').toLowerCase().trim();
 
-  // Comprehensive Slug Dictionary for AnimeSalt (animesalt.cx)
+  // Specific Titles (Order Matters: specific compound names before generic single words!)
+  if (s.includes('boruto')) return 'boruto-naruto-next-generations';
+  if (s.includes('ninja hattori') || s.includes('hattori')) return 'ninja-hattori-returns';
+  if (s.includes('doraemon')) return 'doraemon';
+  if (s.includes('shinchan') || s.includes('shin-chan') || s.includes('crayon shin')) return 'shin-chan';
+  if (s.includes('naruto shippuden')) return 'naruto-shippuden';
+  if (s.includes('naruto')) return 'naruto';
   if (s.includes('demon slayer') || s.includes('kimetsu no yaiba')) return 'demon-slayer-kimetsu-no-yaiba';
   if (s.includes('attack on titan') || s.includes('shingeki no kyojin')) return 'attack-on-titan';
   if (s.includes('my hero academia') || s.includes('boku no hero')) return 'my-hero-academia';
   if (s.includes('jujutsu kaisen')) return 'jujutsu-kaisen';
   if (s.includes('solo leveling')) return 'solo-leveling';
+  if (s.includes('chainsaw man the movie') || s.includes('reze arc')) return 'chainsaw-man-the-movie-reze-arc';
   if (s.includes('chainsaw man')) return 'chainsaw-man';
   if (s.includes('one piece')) return 'one-piece';
-  if (s.includes('naruto shippuden')) return 'naruto-shippuden';
-  if (s.includes('naruto')) return 'naruto';
   if (s.includes('bleach thousand') || s.includes('thousand-year blood war')) return 'bleach-thousand-year-blood-war';
   if (s.includes('bleach')) return 'bleach';
   if (s.includes('your name') || s.includes('kimi no na wa')) return 'your-name';
@@ -20,12 +25,12 @@ export function cleanAnimeSlug(title = '') {
   if (s.includes('death note')) return 'death-note';
   if (s.includes('fullmetal alchemist brotherhood')) return 'fullmetal-alchemist-brotherhood';
   if (s.includes('fullmetal alchemist')) return 'fullmetal-alchemist';
-  if (s.includes('hunter x hunter') || s.includes('hunter')) return 'hunter-x-hunter';
+  if (s.includes('hunter x hunter') || (s.includes('hunter') && !s.includes('solo'))) return 'hunter-x-hunter';
   if (s.includes('tokyo ghoul')) return 'tokyo-ghoul';
   if (s.includes('one punch man')) return 'one-punch-man';
+  if (s.includes('dragon ball daima')) return 'dragon-ball-daima';
   if (s.includes('dragon ball super')) return 'dragon-ball-super';
   if (s.includes('dragon ball z')) return 'dragon-ball-z';
-  if (s.includes('dragon ball daima')) return 'dragon-ball-daima';
   if (s.includes('dragon ball')) return 'dragon-ball';
   if (s.includes('dandadan') || s.includes('dan da dan')) return 'dan-da-dan';
   if (s.includes('blue lock')) return 'blue-lock';
@@ -93,7 +98,7 @@ export const STREAM_SERVERS = [
 ];
 
 export function getStreamUrl(serverId, mediaType, tmdbId, season = 1, episode = 1, isAnime = false, mediaTitle = '') {
-  // ALL ANIME MUST STRICTLY USE ANIME_SERVER (animesalt.cx)
+  // ALL ANIME STRICTLY PLAY FROM ANIMESALT.CX
   if (isAnime || mediaType === 'anime' || serverId === 'animesalt') {
     return (mediaType === 'movie' || (!season && !episode))
       ? ANIME_SERVER.getMovieUrl(tmdbId, mediaTitle)
