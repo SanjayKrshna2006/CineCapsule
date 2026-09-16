@@ -4,6 +4,13 @@ A sleek, modern streaming platform for Movies, TV Series, and Anime powered by T
 
 ---
 
+## 🌐 Live Production Links
+
+- 🚀 **Live Frontend Application**: **[https://cinecapsule-stream.onrender.com](https://cinecapsule-stream.onrender.com)**
+- ⚙️ **Live Backend API & Streaming Proxy**: **[https://cinecapsule-backend.onrender.com](https://cinecapsule-backend.onrender.com)**
+
+---
+
 ## 📁 Repository Structure
 
 ```
@@ -21,26 +28,28 @@ CineCapsule/
 │   ├── render.yaml           # Deployment configuration
 │   └── package.json          # Backend dependencies
 │
+├── api/                      # Vercel Serverless streaming function
+├── vercel.json               # Vercel configuration
 ├── package.json              # Monorepo scripts
-├── start-cinecapsule.bat     # Windows launcher script
+├── start-cinecapsule.bat     # Windows 1-click launcher script
 └── README.md
 ```
 
 ---
 
-## 🚀 Getting Started
+## 🚀 Local Development
 
-### 1. Run Frontend (Port 3000)
+### 1. Run via Monorepo Scripts (Root)
 ```bash
+# Start frontend (http://localhost:3000)
 npm run dev:frontend
-```
 
-### 2. Run Backend (Port 4000)
-```bash
+# Start backend (http://localhost:4000)
 npm run dev:backend
-```
 
-### 3. Build for Production
-```bash
+# Build frontend
 npm run build
 ```
+
+### 2. Windows 1-Click Launch
+Double-click `start-cinecapsule.bat` to launch both Frontend and Backend concurrently.
