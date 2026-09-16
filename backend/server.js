@@ -7,6 +7,22 @@ const PORT = process.env.PORT || 4000;
 app.use(cors());
 app.use(express.json());
 
+// Health Check Endpoint
+app.get('/', (req, res) => {
+  res.json({
+    status: 'online',
+    service: 'CineCapsule Backend API',
+    endpoints: {
+      health: '/api/health',
+      animeStream: '/api/animesalt-stream'
+    }
+  });
+});
+
+app.get('/api/health', (req, res) => {
+  res.json({ status: 'healthy', timestamp: new Date().toISOString() });
+});
+
 // Score similarity between query and AnimeSalt slug
 function scoreSlugMatch(query, slug) {
   const qWords = query.toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().split(/\s+/).filter(w => w.length > 1);
