@@ -97,19 +97,19 @@ export const ANIME_SERVER = ANIME_SERVERS[0];
 export const STREAM_SERVERS = [
   {
     id: 'netmirror',
-    name: 'Server 1 (NetMirror)',
+    name: 'Server 1',
     getMovieUrl: (tmdbId) => `https://embedmaster.link/movie/${tmdbId}?multiLang=true&audio=all`,
     getTvUrl: (tmdbId, season, episode) => `https://embedmaster.link/tv/${tmdbId}/${season || 1}/${episode || 1}?multiLang=true&audio=all`
   },
   {
     id: 'twoembed',
-    name: 'Server 2 (2Embed)',
+    name: 'Server 2',
     getMovieUrl: (tmdbId) => `https://www.2embed.cc/embed/${tmdbId}`,
     getTvUrl: (tmdbId, season, episode) => `https://www.2embed.cc/embedtv/${tmdbId}&s=${season || 1}&e=${episode || 1}`
   },
   {
     id: 'vidsrc',
-    name: 'Server 3 (VidSrc)',
+    name: 'Server 3',
     getMovieUrl: (tmdbId) => `https://vidsrc.pm/embed/movie/${tmdbId}`,
     getTvUrl: (tmdbId, season, episode) => `https://vidsrc.pm/embed/tv/${tmdbId}/${season || 1}/${episode || 1}`
   }
