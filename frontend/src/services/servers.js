@@ -1,10 +1,10 @@
-// High-Reliability Streaming Server Providers with AnimeSalt Engine
+// High-Reliability Streaming Server Providers with AnimeSalt Engine for all Anime
 
 export function cleanAnimeSlug(title = '') {
   let s = (title || '').toLowerCase().trim();
 
-  // Comprehensive Slug Dictionary for Anime Titles
-  if (s.includes('demon slayer') || s.includes('kimetsu no yaiba')) return 'demon-slayer';
+  // Comprehensive Slug Dictionary for AnimeSalt (animesalt.cx)
+  if (s.includes('demon slayer') || s.includes('kimetsu no yaiba')) return 'demon-slayer-kimetsu-no-yaiba';
   if (s.includes('attack on titan') || s.includes('shingeki no kyojin')) return 'attack-on-titan';
   if (s.includes('my hero academia') || s.includes('boku no hero')) return 'my-hero-academia';
   if (s.includes('jujutsu kaisen')) return 'jujutsu-kaisen';
@@ -29,7 +29,7 @@ export function cleanAnimeSlug(title = '') {
   if (s.includes('dragon ball')) return 'dragon-ball';
   if (s.includes('dandadan') || s.includes('dan da dan')) return 'dan-da-dan';
   if (s.includes('blue lock')) return 'blue-lock';
-  if (s.includes('kaiju no') || s.includes('kaiju 8')) return 'kaiju-no.-8';
+  if (s.includes('kaiju no') || s.includes('kaiju 8')) return 'kaiju-no-8';
   if (s.includes('frieren') || s.includes('beyond journey')) return 'frieren-beyond-journeys-end';
   if (s.includes('spy x family') || s.includes('spy family')) return 'spy-x-family';
   if (s.includes('wind breaker')) return 'wind-breaker';
@@ -60,7 +60,7 @@ export function cleanAnimeSlug(title = '') {
 
 export const ANIME_SERVER = {
   id: 'animesalt',
-  name: 'Anime Server',
+  name: 'Anime Server (AnimeSalt)',
   getMovieUrl: (tmdbId, title = '') => {
     const slug = cleanAnimeSlug(title);
     return `/api/animesalt-stream?id=${tmdbId || ''}&slug=${encodeURIComponent(slug)}&title=${encodeURIComponent(title || '')}&movie=true`;
@@ -93,6 +93,7 @@ export const STREAM_SERVERS = [
 ];
 
 export function getStreamUrl(serverId, mediaType, tmdbId, season = 1, episode = 1, isAnime = false, mediaTitle = '') {
+  // ALL ANIME MUST STRICTLY USE ANIME_SERVER (animesalt.cx)
   if (isAnime || mediaType === 'anime' || serverId === 'animesalt') {
     return (mediaType === 'movie' || (!season && !episode))
       ? ANIME_SERVER.getMovieUrl(tmdbId, mediaTitle)

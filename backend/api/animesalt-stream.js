@@ -1,7 +1,16 @@
-﻿// Vercel Serverless Function for AnimeSalt Stream Engine
+import express from 'express';
+import cors from 'cors';
+
+const app = express();
+const PORT = process.env.PORT || 4000;
+
+app.use(cors());
+app.use(express.json());
+
+// Universal AnimeSalt Stream Resolver Engine (STRICTLY animesalt.cx)
 const animeCache = new Map();
 
-export default async function handler(req, res) {
+app.get('/api/animesalt-stream', async (req, res) => {
   try {
     const tmdbId = req.query.id || '';
     const slug = req.query.slug || '';
@@ -24,20 +33,20 @@ export default async function handler(req, res) {
 
       const cleanTitle = (rawTitle || slug)
         .toLowerCase()
-        .replace(/[:\-–—()[\]{}"'’!?]/g, ' ')
+        .replace(/[:\-—–()[\]{}"'’!?]/g, ' ')
         .replace(/\s+/g, '-')
         .replace(/^-+|-+$/g, '');
       if (cleanTitle && !candidates.includes(cleanTitle)) candidates.push(cleanTitle);
 
       const baseTitle = (rawTitle || slug)
-        .split(/[:\-–—]/)[0]
+        .split(/[:\-—–]/)[0]
         .trim()
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '');
       if (baseTitle && !candidates.includes(baseTitle)) candidates.push(baseTitle);
 
-      // 1. Direct candidate checks
+      // 1. Direct candidate checks on AnimeSalt
       for (const cand of candidates) {
         const targetUrls = isMovie
           ? [`https://animesalt.cx/movies/${cand}/`, `https://animesalt.cx/anime/${cand}/`]
@@ -77,7 +86,7 @@ export default async function handler(req, res) {
         if (resolved) break;
       }
 
-      // 2. Search fallback
+      // 2. Search fallback on AnimeSalt
       if (!resolved) {
         const searchTerms = [baseTitle, cleanTitle, rawTitle, slug].filter(Boolean);
         for (const query of searchTerms) {
@@ -128,28 +137,17 @@ export default async function handler(req, res) {
         }
       }
 
-      // 3. Fallback to HD Master Feed
+      // 3. Fallback STRICTLY TO ANIMESALT Direct Page (Never NetMirror)
       if (!resolved) {
-        if (tmdbId) {
-          const fallbackEmbed = isMovie
-            ? `https://embedmaster.link/movie/${tmdbId}?multiLang=true&audio=all`
-            : `https://embedmaster.link/tv/${tmdbId}/${season}/${episode}?multiLang=true&audio=all`;
-
-          resolved = {
-            targetPage: fallbackEmbed,
-            cdnPlayer: fallbackEmbed,
-            allIframes: [fallbackEmbed]
-          };
-        } else {
-          const fallbackPage = isMovie
-            ? `https://animesalt.cx/movies/${slug}/`
-            : `https://animesalt.cx/episode/${slug}-${season}x${episode}/`;
-          resolved = {
-            targetPage: fallbackPage,
-            cdnPlayer: fallbackPage,
-            allIframes: []
-          };
-        }
+        const targetSlug = slug || cleanTitle || 'anime';
+        const fallbackPage = isMovie
+          ? `https://animesalt.cx/movies/${targetSlug}/`
+          : `https://animesalt.cx/episode/${targetSlug}-${season}x${episode}/`;
+        resolved = {
+          targetPage: fallbackPage,
+          cdnPlayer: fallbackPage,
+          allIframes: [fallbackPage]
+        };
       }
 
       animeCache.set(cacheKey, resolved);
@@ -157,15 +155,18 @@ export default async function handler(req, res) {
 
     if (format === 'json') {
       res.setHeader('Content-Type', 'application/json');
-      res.setHeader('Access-Control-Allow-Origin', '*');
       return res.status(200).json(resolved);
     }
 
     const finalPlayerUrl = resolved.cdnPlayer || resolved.targetPage;
-    res.setHeader('Access-Control-Allow-Origin', '*');
     return res.redirect(302, finalPlayerUrl);
   } catch (err) {
-    console.error('[AnimeSalt Serverless Error]:', err.message);
-    return res.status(500).json({ status: 'error', message: err.message });
+    console.error('[AnimeSalt Backend Error]:', err.message);
+    const targetSlug = req.query.slug || 'anime';
+    return res.redirect(302, `https://animesalt.cx/episode/${targetSlug}-1x1/`);
   }
-}
+});
+
+app.listen(PORT, () => {
+  console.log(`🚀 CineCapsule Backend Server running on port ${PORT}`);
+});

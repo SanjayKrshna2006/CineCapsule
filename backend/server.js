@@ -1,117 +1,13 @@
-﻿import express from 'express';
+import express from 'express';
 import cors from 'cors';
 
 const app = express();
 const PORT = process.env.PORT || 4000;
 
-// Enable Cross-Origin Resource Sharing for all client frontends
-app.use(cors({
-  origin: '*',
-  methods: ['GET', 'POST', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'Range']
-}));
-
+app.use(cors());
 app.use(express.json());
 
-// Health Check & Root
-app.get('/', (req, res) => {
-  res.json({
-    name: 'CineCapsule Streaming Backend API',
-    status: 'online',
-    version: '1.0.0',
-    endpoints: [
-      '/health',
-      '/api/animesalt-stream',
-      '/api/newtv',
-      '/api/video-stream'
-    ]
-  });
-});
-
-app.get('/health', (req, res) => {
-  res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
-});
-
-// NetMirror NewTV OTT API Handler (Netflix, Hotstar, Prime Video Multi-Audio)
-app.get('/api/newtv', async (req, res) => {
-  try {
-    const id = req.query.id;
-    const ott = req.query.ott || 'nf';
-    if (!id) {
-      return res.status(400).json({ status: 'error', message: 'Missing id parameter' });
-    }
-
-    const response = await fetch(`https://tv.imgcdn.kim/newtv/player.php?id=${id}`, {
-      headers: {
-        'Cache-Control': 'no-cache',
-        'X-Requested-With': 'NetmirrorNewTV v1.0',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:136.0) Gecko/20100101 Firefox/136.0 /OS.GatuNewTV v1.0',
-        'Accept': 'application/json, text/plain, */*',
-        'Ott': ott
-      }
-    });
-
-    const data = await response.text();
-    res.setHeader('Content-Type', 'application/json');
-    res.status(response.status).send(data);
-  } catch (err) {
-    console.error('[NewTV Proxy Error]:', err.message);
-    res.status(500).json({ status: 'error', message: err.message });
-  }
-});
-
-// Video Range & Chunk Streamer
-app.get('/api/video-stream', async (req, res) => {
-  try {
-    const target = req.query.url;
-    if (!target) {
-      return res.status(400).send('Missing url parameter');
-    }
-
-    const headers = {
-      'Referer': 'https://videodownloader.site/',
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36'
-    };
-
-    if (req.headers.range) {
-      headers['Range'] = req.headers.range;
-    }
-
-    const remote = await fetch(target, { headers });
-
-    const responseHeaders = {
-      'Content-Type': remote.headers.get('content-type') || 'video/mp4',
-      'Accept-Ranges': 'bytes',
-      'Access-Control-Allow-Origin': '*'
-    };
-
-    const cl = remote.headers.get('content-length');
-    if (cl) responseHeaders['Content-Length'] = cl;
-
-    const cr = remote.headers.get('content-range');
-    if (cr) responseHeaders['Content-Range'] = cr;
-
-    res.writeHead(remote.status, responseHeaders);
-
-    if (!remote.body) {
-      return res.end();
-    }
-
-    const reader = remote.body.getReader();
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-      res.write(value);
-    }
-    res.end();
-  } catch (err) {
-    console.error('[Video Stream Error]:', err.message);
-    if (!res.headersSent) res.status(500);
-    res.end();
-  }
-});
-
-// Universal AnimeSalt Stream Resolver Engine
+// Universal AnimeSalt Stream Resolver Engine (STRICTLY animesalt.cx)
 const animeCache = new Map();
 
 app.get('/api/animesalt-stream', async (req, res) => {
@@ -137,20 +33,20 @@ app.get('/api/animesalt-stream', async (req, res) => {
 
       const cleanTitle = (rawTitle || slug)
         .toLowerCase()
-        .replace(/[:\-–—()[\]{}"'’!?]/g, ' ')
+        .replace(/[:\-—–()[\]{}"'’!?]/g, ' ')
         .replace(/\s+/g, '-')
         .replace(/^-+|-+$/g, '');
       if (cleanTitle && !candidates.includes(cleanTitle)) candidates.push(cleanTitle);
 
       const baseTitle = (rawTitle || slug)
-        .split(/[:\-–—]/)[0]
+        .split(/[:\-—–]/)[0]
         .trim()
         .toLowerCase()
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-+|-+$/g, '');
       if (baseTitle && !candidates.includes(baseTitle)) candidates.push(baseTitle);
 
-      // 1. Direct candidate checks
+      // 1. Direct candidate checks on AnimeSalt
       for (const cand of candidates) {
         const targetUrls = isMovie
           ? [`https://animesalt.cx/movies/${cand}/`, `https://animesalt.cx/anime/${cand}/`]
@@ -190,7 +86,7 @@ app.get('/api/animesalt-stream', async (req, res) => {
         if (resolved) break;
       }
 
-      // 2. Search fallback
+      // 2. Search fallback on AnimeSalt
       if (!resolved) {
         const searchTerms = [baseTitle, cleanTitle, rawTitle, slug].filter(Boolean);
         for (const query of searchTerms) {
@@ -241,28 +137,17 @@ app.get('/api/animesalt-stream', async (req, res) => {
         }
       }
 
-      // 3. Fallback to HD Multi-Audio Master Feed
+      // 3. Fallback STRICTLY TO ANIMESALT Direct Page (Never NetMirror)
       if (!resolved) {
-        if (tmdbId) {
-          const fallbackEmbed = isMovie
-            ? `https://embedmaster.link/movie/${tmdbId}?multiLang=true&audio=all`
-            : `https://embedmaster.link/tv/${tmdbId}/${season}/${episode}?multiLang=true&audio=all`;
-
-          resolved = {
-            targetPage: fallbackEmbed,
-            cdnPlayer: fallbackEmbed,
-            allIframes: [fallbackEmbed]
-          };
-        } else {
-          const fallbackPage = isMovie
-            ? `https://animesalt.cx/movies/${slug}/`
-            : `https://animesalt.cx/episode/${slug}-${season}x${episode}/`;
-          resolved = {
-            targetPage: fallbackPage,
-            cdnPlayer: fallbackPage,
-            allIframes: []
-          };
-        }
+        const targetSlug = slug || cleanTitle || 'anime';
+        const fallbackPage = isMovie
+          ? `https://animesalt.cx/movies/${targetSlug}/`
+          : `https://animesalt.cx/episode/${targetSlug}-${season}x${episode}/`;
+        resolved = {
+          targetPage: fallbackPage,
+          cdnPlayer: fallbackPage,
+          allIframes: [fallbackPage]
+        };
       }
 
       animeCache.set(cacheKey, resolved);
@@ -277,7 +162,8 @@ app.get('/api/animesalt-stream', async (req, res) => {
     return res.redirect(302, finalPlayerUrl);
   } catch (err) {
     console.error('[AnimeSalt Backend Error]:', err.message);
-    res.status(500).json({ status: 'error', message: err.message });
+    const targetSlug = req.query.slug || 'anime';
+    return res.redirect(302, `https://animesalt.cx/episode/${targetSlug}-1x1/`);
   }
 });
 

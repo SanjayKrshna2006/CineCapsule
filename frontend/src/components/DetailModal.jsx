@@ -13,7 +13,18 @@ export default function DetailModal({ item, onClose, onPlay, onToggleWatchlist, 
   const [episodes, setEpisodes] = useState([]);
   const [loadingEpisodes, setLoadingEpisodes] = useState(false);
 
-  const isAnime = Boolean(item?.isAnime || (item?.original_language === 'ja' && (item?.genre_ids?.includes(16) || item?.genres?.some(g => g.id === 16))));
+  const isAnime = Boolean(
+    item?.isAnime ||
+    item?.media_type === 'anime' ||
+    item?.type === 'anime' ||
+    (item?.original_language === 'ja' && (
+      item?.genre_ids?.includes(16) ||
+      item?.genres?.some(g => g.id === 16) ||
+      item?.genres?.some(g => g.name?.toLowerCase().includes('animation')) ||
+      item?.genre_ids?.includes(10759) ||
+      item?.genre_ids?.includes(10765)
+    ))
+  );
   const isTv = item?.media_type === 'tv' || item?.first_air_date || (isAnime && item?.media_type !== 'movie');
 
   useEffect(() => {
@@ -142,7 +153,7 @@ export default function DetailModal({ item, onClose, onPlay, onToggleWatchlist, 
 
         <div className="detail-body">
           <div className="detail-actions">
-            <button className="btn-primary" onClick={() => { onPlay(current, selectedSeason, 1); onClose(); }}>
+            <button className="btn-primary" onClick={() => { onPlay({ ...current, isAnime }, selectedSeason, 1); onClose(); }}>
               <Play size={18} fill="#fff" />
               <span>{isTv ? `Play S${selectedSeason} E1` : 'Stream Now'}</span>
             </button>
@@ -202,7 +213,7 @@ export default function DetailModal({ item, onClose, onPlay, onToggleWatchlist, 
                     <div
                       key={ep.id}
                       className="episode-list-row"
-                      onClick={() => { onPlay(current, selectedSeason, ep.episode_number); onClose(); }}
+                      onClick={() => { onPlay({ ...current, isAnime }, selectedSeason, ep.episode_number); onClose(); }}
                     >
                       <span className="episode-index-number">
                         {String(ep.episode_number).padStart(2, '0')}

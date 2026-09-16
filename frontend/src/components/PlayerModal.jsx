@@ -24,12 +24,30 @@ export default function PlayerModal({
   onClose,
   onProgressUpdate
 }) {
-  const isAnime = Boolean(media?.isAnime || (media?.original_language === 'ja' && (media?.genre_ids?.includes(16) || media?.genres?.some(g => g.id === 16))));
+  const isAnime = Boolean(
+    media?.isAnime ||
+    media?.media_type === 'anime' ||
+    media?.type === 'anime' ||
+    (media?.original_language === 'ja' && (
+      media?.genre_ids?.includes(16) ||
+      media?.genres?.some(g => g.id === 16) ||
+      media?.genres?.some(g => g.name?.toLowerCase().includes('animation')) ||
+      media?.genre_ids?.includes(10759) ||
+      media?.genre_ids?.includes(10765)
+    ))
+  );
   const isTv = media?.media_type === 'tv' || media?.first_air_date || (isAnime && media?.media_type !== 'movie');
   const tmdbId = media?.id;
   const title = media?.title || media?.name || 'Now Playing';
 
   const availableServers = isAnime ? [ANIME_SERVER] : STREAM_SERVERS;
+
+  // Lock anime strictly to AnimeSalt server
+  useEffect(() => {
+    if (isAnime) {
+      setSelectedServer(ANIME_SERVER.id);
+    }
+  }, [isAnime, media]);
 
   const [selectedServer, setSelectedServer] = useState(() => {
     if (isAnime) return ANIME_SERVER.id;
