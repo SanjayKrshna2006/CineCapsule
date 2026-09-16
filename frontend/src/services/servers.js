@@ -1,3 +1,5 @@
+const API_BASE = import.meta.env.VITE_BACKEND_URL || '';
+
 // Streaming Server Providers: NetMirror for Movies & Series, AnimeSalt for Anime
 
 export function cleanAnimeSlug(title = '') {
@@ -70,11 +72,11 @@ export const ANIME_SERVERS = [
     name: 'Server 1 (Sub)',
     getMovieUrl: (tmdbId, title = '') => {
       const slug = cleanAnimeSlug(title);
-      return `/api/animesalt-stream?id=${tmdbId || ''}&slug=${encodeURIComponent(slug)}&title=${encodeURIComponent(title || '')}&movie=true&audio=sub`;
+      return `${API_BASE}/api/animesalt-stream?id=${tmdbId || ''}&slug=${encodeURIComponent(slug)}&title=${encodeURIComponent(title || '')}&movie=true&audio=sub`;
     },
     getTvUrl: (tmdbId, season = 1, episode = 1, title = '') => {
       const slug = cleanAnimeSlug(title);
-      return `/api/animesalt-stream?id=${tmdbId || ''}&slug=${encodeURIComponent(slug)}&title=${encodeURIComponent(title || '')}&s=${season || 1}&e=${episode || 1}&audio=sub`;
+      return `${API_BASE}/api/animesalt-stream?id=${tmdbId || ''}&slug=${encodeURIComponent(slug)}&title=${encodeURIComponent(title || '')}&s=${season || 1}&e=${episode || 1}&audio=sub`;
     }
   },
   {
@@ -82,11 +84,11 @@ export const ANIME_SERVERS = [
     name: 'Server 2 (Dub)',
     getMovieUrl: (tmdbId, title = '') => {
       const slug = cleanAnimeSlug(title);
-      return `/api/animesalt-stream?id=${tmdbId || ''}&slug=${encodeURIComponent(slug)}&title=${encodeURIComponent(title || '')}&movie=true&audio=dub`;
+      return `${API_BASE}/api/animesalt-stream?id=${tmdbId || ''}&slug=${encodeURIComponent(slug)}&title=${encodeURIComponent(title || '')}&movie=true&audio=dub`;
     },
     getTvUrl: (tmdbId, season = 1, episode = 1, title = '') => {
       const slug = cleanAnimeSlug(title);
-      return `/api/animesalt-stream?id=${tmdbId || ''}&slug=${encodeURIComponent(slug)}&title=${encodeURIComponent(title || '')}&s=${season || 1}&e=${episode || 1}&audio=dub`;
+      return `${API_BASE}/api/animesalt-stream?id=${tmdbId || ''}&slug=${encodeURIComponent(slug)}&title=${encodeURIComponent(title || '')}&s=${season || 1}&e=${episode || 1}&audio=dub`;
     }
   }
 ];
