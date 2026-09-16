@@ -6,7 +6,7 @@ A sleek, modern streaming platform for Movies, TV Series, and Anime powered by T
 
 ## 🌐 Live Production Links
 
-- 🚀 **Live Frontend Application**: **[https://cinecapsule-stream.onrender.com](https://cinecapsule-stream.onrender.com)**
+- 🚀 **Live Frontend Application**: **[https://cinecapsula.onrender.com](https://cinecapsula.onrender.com)**
 - ⚙️ **Live Backend API & Streaming Proxy**: **[https://cinecapsule-backend.onrender.com](https://cinecapsule-backend.onrender.com)**
 
 ---
